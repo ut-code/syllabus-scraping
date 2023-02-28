@@ -10,11 +10,11 @@ function wait(time) {
     const data = [];
     const browser = await puppeteer.launch({ headless: false });
     console.log("Browser launched.")
-    const page = (await browser.pages())[0];
-    await page.goto("https://utcode.net");
-    const titles = await page.evaluate(() => {
-        const elements= document.querySelectorAll(".entry-title");
-        return Array.from(elements).map(element => element.textContent);
-    });
-    console.log(titles);
+    const page = await browser.newPage();
+    console.log("New page opened.");
+
+    for (let i = 1; i <= 180; i++) {
+        await page.goto(`https://catalog.he.u-tokyo.ac.jp/result?q=&type=jd&faculty_id=&facet=%7B%7D&page=${i}`)
+        console.log("Page moved.")
+    }
 })();
