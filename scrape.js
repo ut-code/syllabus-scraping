@@ -46,9 +46,7 @@ function wait(time) {
             lecturerJp};
     }));
 
-
-    basicInfos.splice(0, 991);
-
+    basicInfos.splice(0, 1201);
 
 
     let flowExecutionKey = await page.evaluate(() => location.href.match(/flowExecutionKey=(.+)$/)[1]);
@@ -76,7 +74,7 @@ function wait(time) {
         });
 
         if (i % 10 == 0) {
-            fs.writeFileSync("data2.json", JSON.stringify(data));
+            fs.writeFileSync("data3.json", JSON.stringify(data));
         }
 
         if (i % 50 == 0) {
@@ -95,7 +93,7 @@ function wait(time) {
         
     };
 
-    fs.writeFileSync("data2.json", JSON.stringify(data));
+    fs.writeFileSync("data3.json", JSON.stringify(data));
 
     
 })();
@@ -104,7 +102,7 @@ function getDetailsUrl(code, key) {
     return "https://utas.adm.u-tokyo.ac.jp/campusweb/campussquare.do?" + querystring.stringify({
         "_flowExecutionKey" : key,
         "_eventId": "input",
-        "nendo": "2022",
+        "nendo": "2023",
         "jikanwariShozokuCode": "00",
         "jikanwaricd": code,
         "locale": "ja_JP"
