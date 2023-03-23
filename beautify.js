@@ -67,6 +67,26 @@ data.forEach(e => {
                     e.one_grade.push(karui["文二"] + "all");
                     e.one_grade.push(karui["文三"] + "all");
                 }
+            } else if (e.class_temp[i] == "文一二") {
+                if (e.class_temp[i + 1] == "|") {
+                    for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+                        classes = e.class_temp[j].split("-");
+                        if (classes.length == 2) {
+                            classes[0] = parseInt(classes[0])
+                            classes[1] = parseInt(classes[1])
+                            for (let k = classes[0]; k <= classes[1]; k++) {
+                                e.one_grade.push(karui["文一"] + String(k));
+                                e.one_grade.push(karui["文二"] + String(k));
+                            }
+                        } else if (classes.length == 1) {
+                            e.one_grade.push(karui["文一"] + classes[0]);
+                            e.one_grade.push(karui["文二"] + classes[0]);
+                        }
+                    }
+                } else {
+                    e.one_grade.push(karui["文一"] + "all");
+                    e.one_grade.push(karui["文二"] + "all");
+                }
             } else {
                 for (let n = 0; n < 6; n++) {
                     if (e.class_temp[i] == Object.keys(karui)[n]) {
