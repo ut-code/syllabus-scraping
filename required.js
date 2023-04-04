@@ -43,7 +43,7 @@ data.forEach(e => {
         const className_s2 = "s2_" + i;
         for (let i = 0; i < e.one_grade.length; i++) {
             if (className_s2 === e.one_grade[i]) {
-                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '力学Ｂ') {
+                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '力学Ｂ' || e.titleJp === '数理科学基礎演習' || e.titleJp === '数学基礎理論演習') {
                 } else {
                     if (className_s2 in required) {
                         required[className_s2].push(e.code);
@@ -74,7 +74,7 @@ data.forEach(e => {
         const className_s3 = "s3_" + i;
         for (let i = 0; i < e.one_grade.length; i++) {
             if (className_s3 === e.one_grade[i]) {
-                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '力学Ｂ') {
+                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '力学Ｂ' || e.titleJp === '数理科学基礎演習' || e.titleJp === '数学基礎理論演習') {
                 } else {
                     if (className_s3 in required) {
                         required[className_s3].push(e.code);
@@ -113,6 +113,9 @@ data.forEach(e => {
                     } else {
                         required[className_l1] = [e.code];
                         subjectName[className_l1] = [e.titleJp];
+                        if (!(className_l1 in required_2)){
+                            required_2[className_l1] = [];
+                        }
                     }
                 }
                 
@@ -129,6 +132,9 @@ data.forEach(e => {
                     } else {
                         required[className_l2] = [e.code];
                         subjectName[className_l2] = [e.titleJp];
+                        if (!(className_l2 in required_2)){
+                            required_2[className_l2] = [];
+                        }
                     }
                 }
                 
@@ -145,6 +151,9 @@ data.forEach(e => {
                     } else {
                         required[className_l3] = [e.code];
                         subjectName[className_l3] = [e.titleJp];
+                        if (!(className_l3 in required_2)){
+                            required_2[className_l3] = [];
+                        }
                     }
                 }
                 
