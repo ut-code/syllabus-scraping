@@ -1,5 +1,5 @@
 const fs = require("fs");
-const rawData = fs.readFileSync("data-beautified.json").toString();
+const rawData = fs.readFileSync("data-beautified2023.json").toString();
 const data = JSON.parse(rawData);
 const required = {};
 const subjectName = {};
