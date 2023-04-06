@@ -1,9 +1,10 @@
 const fs = require("fs");
-let rawData = fs.readFileSync("data2.json").toString() + fs.readFileSync("data3.json").toString();
+let rawData = fs.readFileSync("data2023_new.json").toString();
 rawData = rawData.replace(/\s+/g, " ");
 rawData = rawData.replace(/\\n\s/g, "");
 const data = JSON.parse(rawData);
 data.forEach(e => {
+    console.log(e.code);
     e.class_temp = e.class.split("(").join(" | ");
     e.class_temp = e.class_temp.split(")").join(" ! ");
     e.class_temp = e.class_temp.split(",").join(" ");
@@ -185,4 +186,4 @@ data.forEach(e => {
     delete e.class_temp;
 });
 
-fs.writeFileSync("data-beautified.json", JSON.stringify(data));
+fs.writeFileSync("data-beautified2023.json", JSON.stringify(data));

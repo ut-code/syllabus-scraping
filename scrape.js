@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 const path = require("path");
 const fs = require("fs");
 const querystring = require('querystring');
-const data = [];
+const data = JSON.parse(fs.readFileSync("data2023.json").toString());
 
 function wait(time) {
     return new Promise((resolve) => {
@@ -30,7 +30,7 @@ function wait(time) {
     await page.$x("//input[contains(@value, '検索')]").then(([searchButton]) => searchButton.click());
     await wait(10000);
 
-    const basicInfos = await page.$$eval("tbody tr", rows => rows.map(row => {
+    const basicRecords = await page.$$eval("tbody tr", rows => rows.map(row => {
         const [, semester, _periods,,, classroom,, code, _type, category, titleJp, lecturerJp,] = [...row.children].map(item => item.innerText.trim());
         const periods = _periods.replace(/\s/, "").split(",").map(period => period.trim());
         const type = _type.replace(/(.+)科目/, "$1");
@@ -46,8 +46,30 @@ function wait(time) {
             lecturerJp};
     }));
 
-    basicInfos.splice(0, 1201);
+    const localeChanger = await browser.newPage();
+    await localeChanger.goto("https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=home&locale=en_US");
+    await page.reload();
+    await wait(5000);
+    
+    const basicEnglishRecords = await page.$$eval("tbody tr", rows => rows.map(row => {
+        const [,,,,,,,,,, titleEn, lecturerEn] = [...row.children].map(item => item.innerText.trim());
 
+        return {
+        titleEn,
+        lecturerEn
+        };
+    }));
+
+    const basicInfos = basicRecords.map((jpRecord, i) => ({
+        ...jpRecord,
+        ...basicEnglishRecords[i]
+    }));
+    
+    await localeChanger.goto("https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=home&locale=ja_JP");
+    await localeChanger.close();
+    await wait(3000);
+
+    basicInfos.splice(0, 1851);
 
     let flowExecutionKey = await page.evaluate(() => location.href.match(/flowExecutionKey=(.+)$/)[1]);
     for (const [i, basicInfo] of basicInfos.entries()) {
@@ -74,7 +96,7 @@ function wait(time) {
         });
 
         if (i % 10 == 0) {
-            fs.writeFileSync("data3.json", JSON.stringify(data));
+            fs.writeFileSync("data2023_new.json", JSON.stringify(data));
         }
 
         if (i % 50 == 0) {
@@ -93,7 +115,7 @@ function wait(time) {
         
     };
 
-    fs.writeFileSync("data3.json", JSON.stringify(data));
+    fs.writeFileSync("data2023_new.json", JSON.stringify(data));
 
     
 })();
