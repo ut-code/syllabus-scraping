@@ -23,12 +23,16 @@ function wait(time) {
     await wait(1000);
     const url = await page.$eval("iframe#main-frame-if", iframe => iframe.src);
     await page.goto(url);
+    await page.$eval("input#nendo", input => { input.value = "2023"});
+    await wait(2000);
     await page.$eval("select#gakubuShozokuCode", select => { select.value = "00"});
+    await wait(2000);
+    await page.$eval("select#gakkiKubunCode", select => { select.value = "5" & "6"}); // S1, S2, A1, A2 の順で 3 ~ 6
     await wait(2000);
     await page.$eval("select[name=_displayCount] option[selected]", option => option.value = "5000");
     await wait(1000);
     await page.$x("//input[contains(@value, '検索')]").then(([searchButton]) => searchButton.click());
-    await wait(10000);
+    await wait(30000);
 
     const basicInfos = await page.$$eval("tbody tr", rows => rows.map(row => {
         const [, semester, _periods,,, classroom,, code, _type, category, titleJp, lecturerJp,] = [...row.children].map(item => item.innerText.trim());
@@ -46,10 +50,9 @@ function wait(time) {
             lecturerJp};
     }));
 
-    basicInfos.splice(0, 1201);
+    // basicInfos.splice(0, 1201);
 
-
-    let flowExecutionKey = await page.evaluate(() => location.href.match(/flowExecutionKey=(.+)$/)[1]);
+    var flowExecutionKey = await page.evaluate(() => location.href.match(/flowExecutionKey=(.+)$/)[1]);
     for (const [i, basicInfo] of basicInfos.entries()) {
         console.log(`Fetching ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${basicInfos.length})`)
         await page.goto(getDetailsUrl(basicInfo.code, flowExecutionKey));
@@ -73,11 +76,11 @@ function wait(time) {
             ...addtionalInfo
         });
 
-        if (i % 10 == 0) {
-            fs.writeFileSync("data3.json", JSON.stringify(data));
+        if (i % 100 == 0) {
+            fs.writeFileSync("data2023S.json", JSON.stringify(data));
         }
 
-        if (i % 50 == 0) {
+        if (i % 50 === 0) {
             await page.goto("https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=sy");
             await wait(1000);
             const url = await page.$eval("iframe#main-frame-if", iframe => iframe.src);
@@ -93,7 +96,7 @@ function wait(time) {
         
     };
 
-    fs.writeFileSync("data3.json", JSON.stringify(data));
+    fs.writeFileSync("data2023S.json", JSON.stringify(data));
 
     
 })();
@@ -104,6 +107,7 @@ function getDetailsUrl(code, key) {
         "_eventId": "input",
         "nendo": "2023",
         "jikanwariShozokuCode": "00",
+        "gakkiKubunCode": "5" & "6",
         "jikanwaricd": code,
         "locale": "ja_JP"
     });
