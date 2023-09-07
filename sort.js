@@ -39,9 +39,13 @@ data.forEach(e => {
 });
 
 var sorted = compulsory_subject;
+console.log(compulsory_subject.length, sorted.length);
 for (key of gen_keys) {
-    sorted.push(general_subject[key]);
+    sorted = sorted.concat(general_subject[key]);
+    console.log(general_subject[key].length, sorted.length);
 } 
+console.log(sorted.length);
 sorted = sorted.concat(general_subject, theme_subject, requested_subject, broad_subject, peak, Jp);
 
+console.log(sorted.length);
 fs.writeFileSync("2023S_sorted.json", JSON.stringify(sorted));
