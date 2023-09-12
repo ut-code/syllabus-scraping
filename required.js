@@ -1,5 +1,5 @@
 const fs = require("fs");
-const rawData = fs.readFileSync("2023S-beautified.json").toString();
+const rawData = fs.readFileSync("2022A-beautified.json").toString();
 const data = JSON.parse(rawData);
 const required = {};
 const subjectName = {};
@@ -11,7 +11,7 @@ data.forEach(e => {
         const className_s1 = "s1_" + i;
         for (let i = 0; i < e.one_grade.length; i++) {
             if (className_s1 === e.one_grade[i]) {
-                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計') {
+                if (e.titleJp === '図形科学Ａ' || e.titleJp === '基礎化学' || e.titleJp === '基礎統計') {
                 } else {
                     if (className_s1 in required) {
                         required[className_s1].push(e.code);
@@ -25,7 +25,7 @@ data.forEach(e => {
         }
         for (let i = 0; i < e.two_grade.length; i++) {
             if (className_s1 === e.two_grade[i]) {
-                if (e.titleJp === '図形科学Ｂ' || e.titleJp === '基礎統計' || e.titleJp === '常微分方程式' || e.titleJp === '有機反応化学') {
+                if (e.titleJp === '図形科学Ｂ' || e.titleJp === '図形科学Ａ' || e.titleJp === '基礎統計' || e.titleJp === '常微分方程式' || e.titleJp === '有機反応化学') {
                 } else {
                     if (className_s1 in required_2) {
                         required_2[className_s1].push(e.code);
@@ -41,7 +41,7 @@ data.forEach(e => {
         const className_s2 = "s2_" + i;
         for (let i = 0; i < e.one_grade.length; i++) {
             if (className_s2 === e.one_grade[i]) {
-                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '数理科学基礎演習' || e.titleJp === '数学基礎理論演習') {
+                if (e.titleJp === '図形科学Ａ' || e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '数理科学基礎演習' || e.titleJp === '数学基礎理論演習') {
                 } else {
                     if (className_s2 in required) {
                         required[className_s2].push(e.code);
@@ -56,7 +56,7 @@ data.forEach(e => {
         }
         for (let i = 0; i < e.two_grade.length; i++) {
             if (className_s2 === e.two_grade[i]) {
-                if (e.titleJp === '図形科学Ｂ' || e.titleJp === '基礎統計' || e.titleJp === '常微分方程式' || e.titleJp === '有機反応化学') {
+                if (e.titleJp === '図形科学Ｂ' || e.titleJp === '図形科学Ａ' || e.titleJp === '基礎統計' || e.titleJp === '常微分方程式' || e.titleJp === '有機反応化学') {
                 } else {
                     if (className_s2 in required_2) {
                         required_2[className_s2].push(e.code);
@@ -72,7 +72,7 @@ data.forEach(e => {
         const className_s3 = "s3_" + i;
         for (let i = 0; i < e.one_grade.length; i++) {
             if (className_s3 === e.one_grade[i]) {
-                if (e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '数理科学基礎演習' || e.titleJp === '数学基礎理論演習') {
+                if (e.titleJp === '図形科学Ａ' || e.titleJp === '基礎化学' || e.titleJp === '基礎統計' || e.titleJp === '数理科学基礎演習' || e.titleJp === '数学基礎理論演習') {
                 } else {
                     if (className_s3 in required) {
                         required[className_s3].push(e.code);
@@ -87,7 +87,7 @@ data.forEach(e => {
         }
         for (let i = 0; i < e.two_grade.length; i++) {
             if (className_s3 === e.two_grade[i]) {
-                if (e.titleJp === '図形科学Ｂ' || e.titleJp === '基礎統計' || e.titleJp === '常微分方程式' || e.titleJp === '有機反応化学') {
+                if (e.titleJp === '図形科学Ｂ' || e.titleJp === '図形科学Ａ' || e.titleJp === '基礎統計' || e.titleJp === '常微分方程式' || e.titleJp === '有機反応化学') {
                 } else {
                     if (className_s3 in required_2) {
                         required_2[className_s3].push(e.code);
@@ -180,6 +180,5 @@ data.forEach(e => {
     }
 });
 
-fs.writeFileSync("2023S_required.json", JSON.stringify(required));
-fs.writeFileSync("2023S_required_2.json", JSON.stringify(required_2));
-//console.log(nonRequired["s1"]);
+fs.writeFileSync("2022A_required.json", JSON.stringify(required));
+fs.writeFileSync("2022A_required_2.json", JSON.stringify(required_2));
