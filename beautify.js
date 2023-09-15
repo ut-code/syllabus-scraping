@@ -1,5 +1,5 @@
 const fs = require("fs");
-let rawData = fs.readFileSync("data2022A.json").toString();
+let rawData = fs.readFileSync("data2023A.json").toString();
 rawData = rawData.replace(/\s+/g, " ");
 rawData = rawData.replace(/\\n\s/g, "");
 const data = JSON.parse(rawData);
@@ -186,4 +186,4 @@ data.forEach(e => {
     delete e.class_temp;
 });
 
-fs.writeFileSync("2022A-beautified.json", JSON.stringify(data));
+fs.writeFileSync("2023A-beautified.json", JSON.stringify(data));

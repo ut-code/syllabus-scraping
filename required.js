@@ -1,5 +1,5 @@
 const fs = require("fs");
-const rawData = fs.readFileSync("2022A-beautified.json").toString();
+const rawData = fs.readFileSync("2023A-beautified.json").toString();
 const data = JSON.parse(rawData);
 const required = {};
 const subjectName = {};
@@ -180,5 +180,5 @@ data.forEach(e => {
     }
 });
 
-fs.writeFileSync("2022A_required.json", JSON.stringify(required));
-fs.writeFileSync("2022A_required_2.json", JSON.stringify(required_2));
+fs.writeFileSync("2023A_required.json", JSON.stringify(required));
+fs.writeFileSync("2023A_required_2.json", JSON.stringify(required_2));

@@ -23,7 +23,7 @@ function wait(time) {
     await wait(1000);
     const url = await page.$eval("iframe#main-frame-if", iframe => iframe.src);
     await page.goto(url);
-    await page.$eval("input#nendo", input => { input.value = "2022"});
+    await page.$eval("input#nendo", input => { input.value = "2023"});
     await wait(2000);
     await page.$eval("select#gakubuShozokuCode", select => { select.value = "00"});
     await wait(2000);
@@ -53,7 +53,7 @@ function wait(time) {
     const num_of_A1 = basicInfos.length;
 
     await page.goto(url);
-    await page.$eval("input#nendo", input => { input.value = "2022"});
+    await page.$eval("input#nendo", input => { input.value = "2023"});
     await wait(2000);
     await page.$eval("select#gakubuShozokuCode", select => { select.value = "00"});
     await wait(2000);
@@ -107,7 +107,7 @@ function wait(time) {
         });
 
         if (i % 100 === 0) {
-            fs.writeFileSync("data2022A.json", JSON.stringify(data));
+            fs.writeFileSync("data2023A.json", JSON.stringify(data));
         }
 
         if (i + 1 === num_of_A1) {
@@ -115,7 +115,7 @@ function wait(time) {
             await wait(1000);
             const url = await page.$eval("iframe#main-frame-if", iframe => iframe.src);
             await page.goto(url);
-            await page.$eval("input#nendo", input => { input.value = "2022"});
+            await page.$eval("input#nendo", input => { input.value = "2023"});
             await wait(2000);
             await page.$eval("select#gakubuShozokuCode", select => { select.value = "00"});
             await wait(2000);
@@ -133,7 +133,7 @@ function wait(time) {
             await wait(1000);
             const url = await page.$eval("iframe#main-frame-if", iframe => iframe.src);
             await page.goto(url);
-            await page.$eval("input#nendo", input => { input.value = "2022"});
+            await page.$eval("input#nendo", input => { input.value = "2023"});
             await wait(2000);
             await page.$eval("select#gakubuShozokuCode", select => { select.value = "00"});
             await wait(2000);
@@ -148,7 +148,7 @@ function wait(time) {
         
     };
 
-    fs.writeFileSync("data2022A.json", JSON.stringify(data));
+    fs.writeFileSync("data2023A.json", JSON.stringify(data));
 
     
 })();
@@ -157,7 +157,7 @@ function getDetailsUrl(code, key, term) {
     return "https://utas.adm.u-tokyo.ac.jp/campusweb/campussquare.do?" + querystring.stringify({
         "_flowExecutionKey" : key,
         "_eventId": "input",
-        "nendo": "2022",
+        "nendo": "2023",
         "jikanwariShozokuCode": "00",
         "gakkiKubunCode": term,
         "jikanwaricd": code,

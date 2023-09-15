@@ -1,5 +1,5 @@
 const fs = require("fs");
-const rawData = fs.readFileSync("2022A-beautified.json").toString();
+const rawData = fs.readFileSync("2023A-beautified.json").toString();
 const data = JSON.parse(rawData);
 
 const peak = [];
@@ -48,4 +48,4 @@ console.log(sorted.length);
 sorted = sorted.concat(general_subject, theme_subject, requested_subject, broad_subject, peak, Jp);
 
 console.log(sorted.length);
-fs.writeFileSync("2022A_sorted.json", JSON.stringify(sorted));
+fs.writeFileSync("2023A_sorted.json", JSON.stringify(sorted));
