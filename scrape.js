@@ -4,14 +4,27 @@ const fs = require("fs");
 const querystring = require("querystring");
 
 const version = fs.readFileSync("version.json").toString();
+const nendo = version.slice(0, 4);
+const semester = version.slice(-1);
 
 const data = [];
 
-function wait(time) {
-  return new Promise((resolve) => {
+const wait = (time) =>
+  new Promise((resolve) => {
     setTimeout(resolve, time);
   });
-}
+
+const getDetailsUrl = (code, key, term) =>
+  "https://utas.adm.u-tokyo.ac.jp/campusweb/campussquare.do?" +
+  querystring.stringify({
+    _flowExecutionKey: key,
+    _eventId: "input",
+    nendo: nendo,
+    jikanwariShozokuCode: "00",
+    gakkiKubunCode: term,
+    jikanwaricd: code,
+    locale: "ja_JP",
+  });
 
 (async () => {
   const browser = await puppeteer.launch({ headless: false });
@@ -20,7 +33,8 @@ function wait(time) {
   console.log("New page opened.");
 
   await page.goto("https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do");
-  await wait(30000);
+  /* ここで手動でログイン処理を行う */
+  await wait(60000);
 
   await page.goto(
     "https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=sy"
@@ -29,7 +43,7 @@ function wait(time) {
   const url = await page.$eval("iframe#main-frame-if", (iframe) => iframe.src);
   await page.goto(url);
   await page.$eval("input#nendo", (input) => {
-    input.value = "2023";
+    input.value = nendo;
   });
   await wait(2000);
   await page.$eval("select#gakubuShozokuCode", (select) => {
@@ -37,7 +51,7 @@ function wait(time) {
   });
   await wait(2000);
   await page.$eval("select#gakkiKubunCode", (select) => {
-    select.value = "5";
+    select.value = semester === "S" ? 3 : 5;
   }); // S1, S2, A1, A2 の順で 3 ~ 6
   await wait(2000);
   await page.$eval(
@@ -50,7 +64,7 @@ function wait(time) {
     .then(([searchButton]) => searchButton.click());
   await wait(30000);
 
-  var basicInfos = await page.$$eval("tbody tr", (rows) =>
+  let basicInfos = await page.$$eval("tbody tr", (rows) =>
     rows.map((row) => {
       const [
         ,
@@ -89,7 +103,7 @@ function wait(time) {
 
   await page.goto(url);
   await page.$eval("input#nendo", (input) => {
-    input.value = "2023";
+    input.value = nendo;
   });
   await wait(2000);
   await page.$eval("select#gakubuShozokuCode", (select) => {
@@ -97,7 +111,7 @@ function wait(time) {
   });
   await wait(2000);
   await page.$eval("select#gakkiKubunCode", (select) => {
-    select.value = "6";
+    select.value = semester === "S" ? 4 : 6;
   }); // S1, S2, A1, A2 の順で 3 ~ 6
   await wait(2000);
   await page.$eval(
@@ -149,7 +163,7 @@ function wait(time) {
 
   console.log(basicInfos.length);
 
-  var flowExecutionKey = await page.evaluate(
+  let flowExecutionKey = await page.evaluate(
     () => location.href.match(/flowExecutionKey=(.+)$/)[1]
   );
   for (const [i, basicInfo] of basicInfos.entries()) {
@@ -169,56 +183,48 @@ function wait(time) {
     });
     await wait(500);
 
-    const addtionalInfo = await page.evaluate(() => ({
-      ccCode:
-        document
-          .querySelector(
-            "#tabs-1 .syllabus-normal > tbody > tr:nth-child(3) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      credits:
-        document
-          .querySelector(
-            "#tabs-1 .syllabus-normal > tbody > tr:nth-child(9) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      detail:
-        document
-          .querySelector(
-            "#tabs-2 .syllabus-normal > tbody > tr:nth-child(2) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      schedule:
-        document
-          .querySelector(
-            "#tabs-2 .syllabus-normal > tbody > tr:nth-child(4) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      methods:
-        document
-          .querySelector(
-            "#tabs-2 .syllabus-normal > tbody > tr:nth-child(5) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      evaluation:
-        document
-          .querySelector(
-            "#tabs-2 .syllabus-normal > tbody > tr:nth-child(6) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      notes:
-        document
-          .querySelector(
-            "#tabs-2 .syllabus-normal > tbody > tr:nth-child(10) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-      class:
-        document
-          .querySelector(
-            "#tabs-1 .syllabus-normal > tbody > tr:nth-child(13) td:nth-child(2)"
-          )
-          ?.innerText?.trim?.() ?? null,
-    }));
+    const addtionalInfo = await page.evaluate(() => {
+      const table1 = document.querySelector(
+        "#tabs-1 > .syllabus-normal > tbody"
+      );
+      const table2 = document.querySelector(
+        "#tabs-2 > .syllabus-normal > tbody"
+      );
+      return {
+        ccCode:
+          table1
+            ?.querySelector?.("tr:nth-child(3) > td")
+            ?.innerText?.trim?.() ?? null,
+        credits:
+          table1
+            ?.querySelector?.("tr:nth-child(9) > td")
+            ?.innerText?.trim?.() ?? null,
+        detail:
+          table2
+            ?.querySelector?.("tr:nth-child(2) > td")
+            ?.innerText?.trim?.() ?? null,
+        schedule:
+          table2
+            ?.querySelector?.("tr:nth-child(4) > td")
+            ?.innerText?.trim?.() ?? null,
+        methods:
+          table2
+            ?.querySelector?.("tr:nth-child(5) > td")
+            ?.innerText?.trim?.() ?? null,
+        evaluation:
+          table2
+            ?.querySelector?.("tr:nth-child(6) > td")
+            ?.innerText?.trim?.() ?? null,
+        notes:
+          table2
+            ?.querySelector?.("tr:nth-child(10) > td")
+            ?.innerText?.trim?.() ?? null,
+        class:
+          table1
+            ?.querySelector?.("tr:nth-child(13) > td")
+            ?.innerText?.trim?.() ?? null,
+      };
+    });
 
     data.push({
       ...basicInfo,
@@ -226,7 +232,7 @@ function wait(time) {
     });
 
     if (i % 100 === 0) {
-      fs.writeFileSync("data2023A.json", JSON.stringify(data));
+      fs.writeFileSync(`data${version}.json`, JSON.stringify(data));
     }
 
     if (i + 1 === num_of_A1) {
@@ -307,20 +313,5 @@ function wait(time) {
     }
   }
 
-  fs.writeFileSync("data2023A.json", JSON.stringify(data));
+  fs.writeFileSync(`data${version}.json`, JSON.stringify(data));
 })();
-
-function getDetailsUrl(code, key, term) {
-  return (
-    "https://utas.adm.u-tokyo.ac.jp/campusweb/campussquare.do?" +
-    querystring.stringify({
-      _flowExecutionKey: key,
-      _eventId: "input",
-      nendo: version.slice(0, 4),
-      jikanwariShozokuCode: "00",
-      gakkiKubunCode: term,
-      jikanwaricd: code,
-      locale: "ja_JP",
-    })
-  );
-}

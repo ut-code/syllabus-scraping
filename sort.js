@@ -50,7 +50,7 @@ data.forEach((e) => {
   }
 });
 
-var sorted = compulsory_subject;
+let sorted = compulsory_subject;
 console.log(compulsory_subject.length, sorted.length);
 for (key of gen_keys) {
   sorted = sorted.concat(general_subject[key]);
