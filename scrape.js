@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const querystring = require("querystring");
 
-const version = fs.readFileSync("version.json").toString();
+const version = JSON.parse(fs.readFileSync("version.json").toString());
 const nendo = version.slice(0, 4);
 const semester = version.slice(-1);
 
