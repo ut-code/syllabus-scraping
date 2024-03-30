@@ -11,15 +11,19 @@ const gakkiKubunCodes = semester === "S" ? [3, 4] : [5, 6];
 
 /** @type {Object<string, string>[]} */
 let data = [];
-/** @type {Set<string>} 既に読み込まれたデータの時間割コードのSet */
-let existCodes;
+/** @type {Set<string>} 完全な状態のデータの時間割コードのSet */
+let skippableRecordCodes;
 
 // 以下、スクレイピングが中断した状態からの回復用
 try {
   data = JSON.parse(fs.readFileSync(`data${version}.json`));
-  existCodes = new Set(data.map((record) => record["code"]));
+  skippableRecordCodes = new Set(
+    data
+      .filter((record) => Object.values(record).every((v) => v !== null))
+      .map((record) => record["code"])
+  );
 } catch {
-  existCodes = new Set();
+  skippableRecordCodes = new Set();
 }
 
 /**
@@ -165,7 +169,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
     () => location.href.match(/flowExecutionKey=(.+)$/)[1]
   );
   for (const [i, basicInfo] of basicInfos.entries()) {
-    if (existCodes.has(basicInfo.code)) {
+    if (skippableRecordCodes.has(basicInfo.code)) {
       console.log(
         `Skipped ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${
           basicInfos.length
@@ -220,10 +224,10 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
       };
     });
 
-    data.push({
+    data[i] = {
       ...basicInfo,
       ...addtionalInfo,
-    });
+    };
 
     // スクレイピングが中断した際に備え、一定回数毎に保存しておく
     if (i % 100 === 0) {
