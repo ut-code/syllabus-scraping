@@ -3,13 +3,24 @@ const path = require("path");
 const fs = require("fs");
 const querystring = require("querystring");
 
-const version = fs.readFileSync("version.json").toString();
+const version = JSON.parse(fs.readFileSync("version.json").toString());
 const nendo = version.slice(0, 4);
 const semester = version.slice(-1);
 // S1, S2, A1, A2 の順で 3 ~ 6
 const gakkiKubunCodes = semester === "S" ? [3, 4] : [5, 6];
 
-const data = [];
+/** @type {Object<string, string>[]} */
+let data = [];
+/** @type {Set<string>} 既に読み込まれたデータの時間割コードのSet */
+let existCodes;
+
+// 以下、スクレイピングが中断した状態からの回復用
+try {
+  data = JSON.parse(fs.readFileSync(`data${version}.json`));
+  existCodes = new Set(data.map((record) => record["code"]));
+} catch {
+  existCodes = new Set();
+}
 
 /**
  * 指定の時間だけ待機する
@@ -20,6 +31,13 @@ const wait = (time) =>
     setTimeout(resolve, time);
   });
 
+/**
+ * 詳細のURLを取得する
+ * @param {string} code
+ * @param {string} key
+ * @param {boolean} isFirstTerm
+ * @returns {string}
+ */
 const getDetailsUrl = (code, key, isFirstTerm) =>
   "https://utas.adm.u-tokyo.ac.jp/campusweb/campussquare.do?" +
   querystring.stringify({
@@ -147,6 +165,15 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
     () => location.href.match(/flowExecutionKey=(.+)$/)[1]
   );
   for (const [i, basicInfo] of basicInfos.entries()) {
+    if (existCodes.has(basicInfo.code)) {
+      console.log(
+        `Skipped ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${
+          basicInfos.length
+        })`
+      );
+      continue;
+    }
+
     console.log(
       `Fetching ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${
         basicInfos.length
@@ -163,16 +190,18 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
     });
     await wait(500);
 
-    /**
-     * @param {ParentNode | null} table
-     * @param {number} n
-     * @returns {string | null}
-     */
-    const getNthCellText = (table, n) => {
-      cell = table && table.querySelector(`tr:nth-child(${n}) > td`);
-      return cell && cell.innerText.trim();
-    };
     const addtionalInfo = await page.evaluate(() => {
+      /**
+       * 講義情報の表から、指定の項目の情報を得る
+       * @param {ParentNode | null} table
+       * @param {number} n
+       * @returns {string | null}
+       */
+      const getNthCellText = (table, n) => {
+        cell = table && table.querySelector(`tr:nth-child(${n}) > td`);
+        return cell && cell.innerText.trim();
+      };
+
       const table1 = document.querySelector(
         "#tabs-1 > .syllabus-normal > tbody"
       );
@@ -201,7 +230,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
       fs.writeFileSync(`data${version}.json`, JSON.stringify(data));
     }
 
-    // ここの存在意義が今ひとつ分からない...
+    // この部分については、iframe周辺の処理用と推測している
     if (i === numOfTerm1 - 1 || i % 50 === 0) {
       const url = await loadSearchPanelAndGetUrl(page);
       await loadSearchResult(page, url, i < numOfTerm1 - 1);
