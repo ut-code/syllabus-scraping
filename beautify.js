@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const version = JSON.parse(fs.readFileSync("version.json").toString());
+const version = fs.readFileSync("version.json").toString();
 
 let rawData = fs.readFileSync(`data${version}.json`).toString();
 rawData = rawData.replace(/\s+/g, " ");

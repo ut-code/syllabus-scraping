@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const version = JSON.parse(fs.readFileSync("version.json").toString());
+const version = fs.readFileSync("version.json").toString();
 
 const rawData = fs.readFileSync(`${version}-beautified.json`).toString();
 

@@ -3,51 +3,77 @@ const path = require("path");
 const fs = require("fs");
 const querystring = require("querystring");
 
-const version = JSON.parse(fs.readFileSync("version.json").toString());
+const version = fs.readFileSync("version.json").toString();
 const nendo = version.slice(0, 4);
 const semester = version.slice(-1);
+// S1, S2, A1, A2 の順で 3 ~ 6
+const gakkiKubunCodes = semester === "S" ? [3, 4] : [5, 6];
 
 const data = [];
 
+/**
+ * 指定の時間だけ待機する
+ * @param {number} time 単位はms
+ */
 const wait = (time) =>
   new Promise((resolve) => {
     setTimeout(resolve, time);
   });
 
-const getDetailsUrl = (code, key, term) =>
+const getDetailsUrl = (code, key, isFirstTerm) =>
   "https://utas.adm.u-tokyo.ac.jp/campusweb/campussquare.do?" +
   querystring.stringify({
     _flowExecutionKey: key,
     _eventId: "input",
     nendo: nendo,
     jikanwariShozokuCode: "00",
-    gakkiKubunCode: term,
+    gakkiKubunCode: gakkiKubunCodes[isFirstTerm ? 0 : 1],
     jikanwaricd: code,
     locale: "ja_JP",
   });
 
+/**
+ * 検索条件入力ページに遷移し、urlとなる文字列を返す
+ * @param {puppeteer.Page} page
+ * @returns {Promise<string>} iframeのsrc
+ */
 const loadSearchPanelAndGetUrl = async (page) => {
   await page.goto(
     "https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=sy"
   );
   await wait(1000);
-  const url = await page.$eval("iframe#main-frame-if", (iframe) => iframe.src);
+  const url = page.$eval("iframe#main-frame-if", (iframe) => iframe.src);
   return url;
 };
 
-const loadSearchResult = async (page, url, gakkiKubunCode) => {
+/**
+ * 検索結果ページに遷移する
+ * @param {puppeteer.Page} page
+ * @param {string} url iframeのurl
+ * @param {boolean} isFirstTerm
+ */
+const loadSearchResult = async (page, url, isFirstTerm) => {
   await page.goto(url);
-  await page.$eval("input#nendo", (input) => {
-    input.value = nendo;
-  });
+  await page.$eval(
+    "input#nendo",
+    (input, nendo) => {
+      input.value = nendo;
+    },
+    nendo
+  );
   await wait(2000);
   await page.$eval("select#gakubuShozokuCode", (select) => {
     select.value = "00";
   });
   await wait(2000);
-  await page.$eval("select#gakkiKubunCode", (select) => {
-    select.value = gakkiKubunCode;
-  }); // S1, S2, A1, A2 の順で 3 ~ 6
+  // S1, S2, A1, A2 の順で 3 ~ 6
+  await page.$eval(
+    "select#gakkiKubunCode",
+    (select, gakkiKubunCode) => {
+      select.value = gakkiKubunCode;
+    },
+    gakkiKubunCodes[isFirstTerm ? 0 : 1]
+  );
   await wait(2000);
   await page.$eval(
     "select[name=_displayCount] option[selected]",
@@ -66,16 +92,15 @@ const loadSearchResult = async (page, url, gakkiKubunCode) => {
   console.log("New page opened.");
 
   await page.goto("https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do");
-  /* ここで手動でログイン処理を行う */
+  // ここで手動でログイン処理を行う
   await wait(60000);
 
   const url = await loadSearchPanelAndGetUrl(page);
 
-  const basicInfos = [];
-  const dataNums = [];
-  const gakkiKubunCodes = semester === "S" ? [3, 4] : [5, 6];
-  for (const gakkiKubunCode of gakkiKubunCodes) {
-    await loadSearchResult(page, url, gakkiKubunCode);
+  let basicInfos = [];
+  const dataCounts = [];
+  for (const isFirstTerm of [true, false]) {
+    await loadSearchResult(page, url, isFirstTerm);
     await wait(30000);
     const termBasicInfos = await page.$$eval("tbody tr", (rows) =>
       rows.map((row) => {
@@ -112,11 +137,10 @@ const loadSearchResult = async (page, url, gakkiKubunCode) => {
       })
     );
     basicInfos = basicInfos.concat(termBasicInfos);
-    dataNums.push(termBasicInfos.length);
+    dataCounts.push(termBasicInfos.length);
   }
 
-  const numOfTerm1 = dataNums[0];
-
+  const numOfTerm1 = dataCounts[0];
   console.log(basicInfos.length);
 
   let flowExecutionKey = await page.evaluate(
@@ -129,11 +153,7 @@ const loadSearchResult = async (page, url, gakkiKubunCode) => {
       })`
     );
     await page.goto(
-      getDetailsUrl(
-        basicInfo.code,
-        flowExecutionKey,
-        gakkiKubunCodes[i < numOfTerm1 ? 0 : 1]
-      )
+      getDetailsUrl(basicInfo.code, flowExecutionKey, i < numOfTerm1)
     );
     await wait(2500);
     await page.$$eval(".ui-tabs-hide", (elements) => {
@@ -143,6 +163,15 @@ const loadSearchResult = async (page, url, gakkiKubunCode) => {
     });
     await wait(500);
 
+    /**
+     * @param {ParentNode | null} table
+     * @param {number} n
+     * @returns {string | null}
+     */
+    const getNthCellText = (table, n) => {
+      cell = table && table.querySelector(`tr:nth-child(${n}) > td`);
+      return cell && cell.innerText.trim();
+    };
     const addtionalInfo = await page.evaluate(() => {
       const table1 = document.querySelector(
         "#tabs-1 > .syllabus-normal > tbody"
@@ -151,38 +180,14 @@ const loadSearchResult = async (page, url, gakkiKubunCode) => {
         "#tabs-2 > .syllabus-normal > tbody"
       );
       return {
-        ccCode:
-          table1
-            ?.querySelector?.("tr:nth-child(3) > td")
-            ?.innerText?.trim?.() ?? null,
-        credits:
-          table1
-            ?.querySelector?.("tr:nth-child(9) > td")
-            ?.innerText?.trim?.() ?? null,
-        detail:
-          table2
-            ?.querySelector?.("tr:nth-child(2) > td")
-            ?.innerText?.trim?.() ?? null,
-        schedule:
-          table2
-            ?.querySelector?.("tr:nth-child(4) > td")
-            ?.innerText?.trim?.() ?? null,
-        methods:
-          table2
-            ?.querySelector?.("tr:nth-child(5) > td")
-            ?.innerText?.trim?.() ?? null,
-        evaluation:
-          table2
-            ?.querySelector?.("tr:nth-child(6) > td")
-            ?.innerText?.trim?.() ?? null,
-        notes:
-          table2
-            ?.querySelector?.("tr:nth-child(10) > td")
-            ?.innerText?.trim?.() ?? null,
-        class:
-          table1
-            ?.querySelector?.("tr:nth-child(13) > td")
-            ?.innerText?.trim?.() ?? null,
+        ccCode: getNthCellText(table1, 3),
+        credits: getNthCellText(table1, 9),
+        detail: getNthCellText(table2, 2),
+        schedule: getNthCellText(table2, 4),
+        methods: getNthCellText(table2, 5),
+        evaluation: getNthCellText(table2, 6),
+        notes: getNthCellText(table2, 10),
+        class: getNthCellText(table1, 13),
       };
     });
 
@@ -191,26 +196,15 @@ const loadSearchResult = async (page, url, gakkiKubunCode) => {
       ...addtionalInfo,
     });
 
+    // スクレイピングが中断した際に備え、一定回数毎に保存しておく
     if (i % 100 === 0) {
       fs.writeFileSync(`data${version}.json`, JSON.stringify(data));
     }
 
-    if (i + 1 === numOfTerm1) {
+    // ここの存在意義が今ひとつ分からない...
+    if (i === numOfTerm1 - 1 || i % 50 === 0) {
       const url = await loadSearchPanelAndGetUrl(page);
-      await loadSearchResult(page, url, gakkiKubunCodes[1]);
-      await wait(10000);
-      flowExecutionKey = await page.evaluate(
-        () => location.href.match(/flowExecutionKey=(.+)$/)[1]
-      );
-    }
-
-    if (i % 50 === 0) {
-      const url = await loadSearchPanelAndGetUrl(page);
-      await loadSearchResult(
-        page,
-        url,
-        gakkiKubunCodes[i < numOfTerm1 ? 0 : 1]
-      );
+      await loadSearchResult(page, url, i < numOfTerm1 - 1);
       await wait(10000);
       flowExecutionKey = await page.evaluate(
         () => location.href.match(/flowExecutionKey=(.+)$/)[1]
