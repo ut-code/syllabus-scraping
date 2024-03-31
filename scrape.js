@@ -1,5 +1,6 @@
+// スクレイピングにより授業データを取得
+
 const puppeteer = require("puppeteer");
-const path = require("path");
 const fs = require("fs");
 const querystring = require("querystring");
 
@@ -9,6 +10,9 @@ const semester = version.slice(-1);
 // S1, S2, A1, A2 の順で 3 ~ 6
 const gakkiKubunCodes = semester === "S" ? [3, 4] : [5, 6];
 
+const readFileName = `raw${version}.json`;
+const writeFileName = `raw${version}.json`;
+
 /** @type {Object<string, string>[]} */
 let data = [];
 /** @type {Set<string>} 完全な状態のデータの時間割コードのSet */
@@ -16,7 +20,7 @@ let skippableRecordCodes;
 
 // 以下、スクレイピングが中断した状態からの回復用
 try {
-  data = JSON.parse(fs.readFileSync(`data${version}.json`));
+  data = JSON.parse(fs.readFileSync(readFileName));
   skippableRecordCodes = new Set(
     data
       .filter((record) => Object.values(record).every((v) => v !== null))
@@ -231,7 +235,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
 
     // スクレイピングが中断した際に備え、一定回数毎に保存しておく
     if (i % 100 === 0) {
-      fs.writeFileSync(`data${version}.json`, JSON.stringify(data));
+      fs.writeFileSync(writeFileName, JSON.stringify(data));
     }
 
     // この部分については、iframe周辺の処理用と推測している
@@ -245,5 +249,5 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
     }
   }
 
-  fs.writeFileSync(`data${version}.json`, JSON.stringify(data));
+  fs.writeFileSync(writeFileName, JSON.stringify(data));
 })();
