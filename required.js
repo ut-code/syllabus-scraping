@@ -1,8 +1,13 @@
+// クラス毎の必修授業の時間割コードのリストを提供する
+
 const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
-const rawData = fs.readFileSync(`${version}-beautified.json`).toString();
+const readFileName = `sorted${version}.json`;
+const writeFileName = `required${version}.json`;
+
+const rawData = fs.readFileSync(readFileName).toString();
 
 const data = JSON.parse(rawData);
 const required = {};
@@ -220,5 +225,4 @@ data.forEach((e) => {
   }
 });
 
-fs.writeFileSync(`${version}_required.json`, JSON.stringify(required));
-fs.writeFileSync(`${version}_required_2.json`, JSON.stringify(required_2));
+fs.writeFileSync(writeFileName, JSON.stringify([required, required_2]));

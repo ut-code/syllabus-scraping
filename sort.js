@@ -1,8 +1,13 @@
+// 授業種別によってDBをソート
+
 const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
-const rawData = fs.readFileSync(`${version}-beautified.json`).toString();
+const readFileName = `beautified${version}.json`;
+const writeFileName = `sorted${version}.json`;
+
+const rawData = fs.readFileSync(readFileName).toString();
 
 const data = JSON.parse(rawData);
 
@@ -22,8 +27,8 @@ const gen_keys = Object.keys(general_subject);
 const requested_subject = [];
 const theme_subject = [];
 const broad_subject = [];
-const sophomore = [];
-const rest = []; //残りの優先度高めの授業
+// const sophomore = [];
+// const rest = []; // 残りの優先度高めの授業
 
 data.forEach((e) => {
   if (e.titleJp.includes("PEAK")) {
@@ -58,7 +63,6 @@ for (key of gen_keys) {
 }
 console.log(sorted.length);
 sorted = sorted.concat(
-  general_subject,
   theme_subject,
   requested_subject,
   broad_subject,
@@ -66,5 +70,4 @@ sorted = sorted.concat(
   Jp
 );
 
-console.log(sorted.length);
-fs.writeFileSync(`${version}_sorted.json`, JSON.stringify(sorted));
+fs.writeFileSync(writeFileName, JSON.stringify(sorted));

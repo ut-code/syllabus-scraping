@@ -1,12 +1,17 @@
+// 空白文字削除, 学年毎の対象クラス情報追加
+
 const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
-let rawData = fs.readFileSync(`data${version}.json`).toString();
-rawData = rawData.replace(/\s+/g, " ");
-rawData = rawData.replace(/\\n\s/g, "");
+const readFileName = `raw${version}.json`;
+const writeFileName = `beautified${version}.json`;
+
+let rawData = fs.readFileSync(readFileName).toString();
+rawData = rawData.replace(/\s+/g, " ").replace(/\\n\s/g, "");
 
 const data = JSON.parse(rawData);
+
 data.forEach((e) => {
   console.log(e.code, e.titleJp, e.class);
   e.class_temp = e.class.split("(").join(" | ");
@@ -197,4 +202,4 @@ data.forEach((e) => {
   delete e.class_temp;
 });
 
-fs.writeFileSync(`${version}-beautified.json`, JSON.stringify(data));
+fs.writeFileSync(writeFileName, JSON.stringify(data));
