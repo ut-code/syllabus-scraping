@@ -40,24 +40,21 @@ const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
-const readFileName = `sorted${version}.json`;
-const writeFileName = `processed${version}.json`;
-
-let rawData = fs.readFileSync(readFileName).toString();
-
-// 全角英数字, 全角スペース, 空文字の除去、紛らわしい文字の統一、テンプレテキスト削除
-// 分かりにくいが、3つ目のreplaceの"～"は全角チルダであり、波ダッシュではない
-// 小文字にはしていない(検索時は別途toLowerCase()が必要)
-rawData = rawData
-  .replace(/([^\S\n]|　)+/g, " ")
-  .replace(/[，．]/g, "$& ")
-  .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
-  .replace(/[‐―−ｰ]/g, "-")
-  .replaceAll("〜", "~")
-  .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "");
-
-/** @type {Lecture[]} */
-const data = JSON.parse(rawData);
+/**
+ * 全角英数字, 全角スペース, 空文字の除去、紛らわしい文字の統一、テンプレテキスト削除
+ * 分かりにくいが、3つ目のreplaceの"～"は全角チルダであり、波ダッシュではない
+ * 小文字にはしていない(検索時は別途toLowerCase()が必要)
+ * @param {string} text
+ * @returns {string}
+ */
+const normalize = (text) =>
+  text
+    .replace(/([^\S\n]|　)+/g, " ")
+    .replace(/[，．]/g, "$& ")
+    .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+    .replace(/[‐―−ｰ]/g, "-")
+    .replaceAll("〜", "~")
+    .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "");
 
 /**
  * 系列の短縮表現を得る
@@ -168,8 +165,11 @@ const getGuidance = (text) => {
   }
 };
 
-// テキストを正規化する
-for (const lecture of data) {
+/**
+ * 講義情報を正規化, 追加する
+ * @param {Lecture} lecture
+ */
+const processLecture = (lecture) => {
   lecture.credits = Number(lecture.credits);
 
   lecture.detail = lecture.detail.trim();
@@ -183,6 +183,25 @@ for (const lecture of data) {
     lecture.type + getShortenedCategory(lecture.category);
   lecture.shortenedEvaluation = getShortenedEvaluation(lecture.evaluation);
   lecture.shortenedClassroom = getShortenedClassroom(lecture.classroom);
-}
+};
 
-fs.writeFileSync(writeFileName, JSON.stringify(data));
+const processDB = (version) => {
+  const readFileName = `sorted${version}.json`;
+  const writeFileName = `processed${version}.json`;
+
+  let rawData = fs.readFileSync(readFileName).toString();
+
+  rawData = normalize(rawData);
+
+  /** @type {Lecture[]} */
+  const data = JSON.parse(rawData);
+
+  // テキストを正規化する
+  for (const lecture of data) {
+    processLecture(lecture);
+  }
+
+  fs.writeFileSync(writeFileName, JSON.stringify(data));
+};
+
+processDB(version);

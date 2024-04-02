@@ -4,15 +4,11 @@ const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
-const readFileName = `raw${version}.json`;
-const writeFileName = `beautified${version}.json`;
-
-let rawData = fs.readFileSync(readFileName).toString();
-rawData = rawData.replace(/\s+/g, " ").replace(/\\n\s/g, "");
-
-const data = JSON.parse(rawData);
-
-data.forEach((e) => {
+/**
+ * 対象クラス情報をパースした結果を書き込む
+ * @param {Lecture} e
+ */
+const parseClass = (e) => {
   console.log(e.code, e.titleJp, e.class);
   e.class_temp = e.class.split("(").join(" | ");
   e.class_temp = e.class_temp.split(")").join(" ! ");
@@ -200,6 +196,21 @@ data.forEach((e) => {
     }
   }
   delete e.class_temp;
-});
+};
 
-fs.writeFileSync(writeFileName, JSON.stringify(data));
+const beautifyDB = (version) => {
+  const readFileName = `raw${version}.json`;
+  const writeFileName = `beautified${version}.json`;
+
+  let rawData = fs.readFileSync(readFileName).toString();
+  rawData = rawData.replace(/\s+/g, " ").replace(/\\n\s/g, "");
+
+  /** @type {Lecture[]} */
+  const data = JSON.parse(rawData);
+
+  data.forEach(parseClass);
+
+  fs.writeFileSync(writeFileName, JSON.stringify(data));
+};
+
+beautifyDB(version);
