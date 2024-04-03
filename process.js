@@ -1,7 +1,3 @@
-// 使用するプロパティの追加, 文字列正規化
-
-const fs = require("fs");
-
 /** @typedef {string} Code */
 /** @typedef {string} Semester */
 /** @typedef {string} Period */
@@ -38,23 +34,226 @@ const fs = require("fs");
  * @prop {HTMLTableRowElement} tableRow
  */
 
+// 文字列正規化
+// 学年毎の対象クラス情報追加
+// 使用するプロパティの追加
+// 授業種別によってDBをソート
+
+const fs = require("fs");
+
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
 /**
  * 全角英数字, 全角スペース, 空文字の除去、紛らわしい文字の統一、テンプレテキスト削除
- * 分かりにくいが、3つ目のreplaceの"～"は全角チルダであり、波ダッシュではない
+ * 分かりにくいが、5つ目のreplaceの"～"は全角チルダであり、波ダッシュではない
  * 小文字にはしていない(検索時は別途toLowerCase()が必要)
  * @param {string} text
  * @returns {string}
  */
-const normalize = (text) =>
+const normalizeText = (text) =>
   text
+    .replace(/\s+/g, " ")
+    .replace(/\\n\s/g, "")
     .replace(/([^\S\n]|　)+/g, " ")
     .replace(/[，．]/g, "$& ")
     .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
     .replace(/[‐―−ｰ]/g, "-")
     .replaceAll("〜", "~")
     .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "");
+
+/**
+ * 対象クラス情報をパースした結果を書き込む
+ * @param {Lecture} e
+ */
+const parseClass = (e) => {
+  console.log(e.code, e.titleJp, e.class);
+  e.class_temp = e.class.split("(").join(" | ");
+  e.class_temp = e.class_temp.split(")").join(" ! ");
+  e.class_temp = e.class_temp.split(",").join(" ");
+  e.class_temp = e.class_temp.split(" ");
+  e.one_grade = [];
+  e.two_grade = [];
+  grade = 0;
+  karui = {
+    理一: "s1_",
+    理二: "s2_",
+    理三: "s3_",
+    文一: "l1_",
+    文二: "l2_",
+    文三: "l3_",
+  };
+  for (let i = 0; i < e.class_temp.length; i++) {
+    if (e.class_temp[i] === "1年") {
+      grade = 1;
+    } else if (e.class_temp[i] === "2年") {
+      grade = 2;
+    }
+    if (grade === 1) {
+      if (e.class_temp[i] === "理科") {
+        e.one_grade.push("s1_all");
+        e.one_grade.push("s2_all");
+        e.one_grade.push("s3_all");
+      } else if (e.class_temp[i] === "文科") {
+        e.one_grade.push("l1_all");
+        e.one_grade.push("l2_all");
+        e.one_grade.push("l3_all");
+      } else if (e.class_temp[i] === "理二三") {
+        if (e.class_temp[i + 1] === "|") {
+          for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+            classes = e.class_temp[j].split("-");
+            if (classes.length === 2) {
+              classes[0] = parseInt(classes[0]);
+              classes[1] = parseInt(classes[1]);
+              for (let k = classes[0]; k <= classes[1]; k++) {
+                e.one_grade.push(karui["理二"] + String(k));
+                e.one_grade.push(karui["理三"] + String(k));
+              }
+            } else if (classes.length === 1) {
+              e.one_grade.push(karui["理二"] + classes[0]);
+              e.one_grade.push(karui["理三"] + classes[0]);
+            }
+          }
+        } else {
+          e.one_grade.push(karui["理二"] + "all");
+          e.one_grade.push(karui["理三"] + "all");
+        }
+      } else if (e.class_temp[i] === "文二三") {
+        if (e.class_temp[i + 1] === "|") {
+          for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+            classes = e.class_temp[j].split("-");
+            if (classes.length === 2) {
+              classes[0] = parseInt(classes[0]);
+              classes[1] = parseInt(classes[1]);
+              for (let k = classes[0]; k <= classes[1]; k++) {
+                e.one_grade.push(karui["文二"] + String(k));
+                e.one_grade.push(karui["文三"] + String(k));
+              }
+            } else if (classes.length === 1) {
+              e.one_grade.push(karui["文二"] + classes[0]);
+              e.one_grade.push(karui["文三"] + classes[0]);
+            }
+          }
+        } else {
+          e.one_grade.push(karui["文二"] + "all");
+          e.one_grade.push(karui["文三"] + "all");
+        }
+      } else if (e.class_temp[i] === "文一二") {
+        if (e.class_temp[i + 1] === "|") {
+          for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+            classes = e.class_temp[j].split("-");
+            if (classes.length === 2) {
+              classes[0] = parseInt(classes[0]);
+              classes[1] = parseInt(classes[1]);
+              for (let k = classes[0]; k <= classes[1]; k++) {
+                e.one_grade.push(karui["文一"] + String(k));
+                e.one_grade.push(karui["文二"] + String(k));
+              }
+            } else if (classes.length === 1) {
+              e.one_grade.push(karui["文一"] + classes[0]);
+              e.one_grade.push(karui["文二"] + classes[0]);
+            }
+          }
+        } else {
+          e.one_grade.push(karui["文一"] + "all");
+          e.one_grade.push(karui["文二"] + "all");
+        }
+      } else {
+        for (let n = 0; n < 6; n++) {
+          if (e.class_temp[i] === Object.keys(karui)[n]) {
+            if (e.class_temp[i + 1] === "|") {
+              for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+                classes = e.class_temp[j].split("-");
+                if (classes.length === 2) {
+                  classes[0] = parseInt(classes[0]);
+                  classes[1] = parseInt(classes[1]);
+                  for (let k = classes[0]; k <= classes[1]; k++) {
+                    e.one_grade.push(karui[e.class_temp[i]] + String(k));
+                  }
+                } else if (classes.length === 1) {
+                  e.one_grade.push(karui[e.class_temp[i]] + classes[0]);
+                }
+              }
+            } else {
+              e.one_grade.push(karui[e.class_temp[i]] + "all");
+            }
+          }
+        }
+      }
+    } else if (grade === 2) {
+      if (e.class_temp[i] === "理科") {
+        e.two_grade.push("s1_all");
+        e.two_grade.push("s2_all");
+        e.two_grade.push("s3_all");
+      } else if (e.class_temp[i] === "文科") {
+        e.two_grade.push("l1_all");
+        e.two_grade.push("l2_all");
+        e.two_grade.push("l3_all");
+      } else if (e.class_temp[i] === "理二三") {
+        if (e.class_temp[i + 1] === "|") {
+          for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+            classes = e.class_temp[j].split("-");
+            if (classes.length === 2) {
+              classes[0] = parseInt(classes[0]);
+              classes[1] = parseInt(classes[1]);
+              for (let k = classes[0]; k <= classes[1]; k++) {
+                e.two_grade.push(karui["理二"] + String(k));
+                e.two_grade.push(karui["理三"] + String(k));
+              }
+            } else if (classes.length == 1) {
+              e.two_grade.push(karui["理二"] + classes[0]);
+              e.two_grade.push(karui["理三"] + classes[0]);
+            }
+          }
+        } else {
+          e.two_grade.push(karui["理二"] + "all");
+          e.two_grade.push(karui["理三"] + "all");
+        }
+      } else if (e.class_temp[i] === "文二三") {
+        if (e.class_temp[i + 1] === "|") {
+          for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+            classes = e.class_temp[j].split("-");
+            if (classes.length === 2) {
+              classes[0] = parseInt(classes[0]);
+              classes[1] = parseInt(classes[1]);
+              for (let k = classes[0]; k <= classes[1]; k++) {
+                e.two_grade.push(karui["文二"] + String(k));
+                e.two_grade.push(karui["文三"] + String(k));
+              }
+            } else if (classes.length === 1) {
+              e.two_grade.push(karui["文二"] + classes[0]);
+              e.two_grade.push(karui["文三"] + classes[0]);
+            }
+          }
+        } else {
+          e.two_grade.push(karui["文二"] + "all");
+          e.two_grade.push(karui["文三"] + "all");
+        }
+      } else {
+        for (let n = 0; n < 6; n++) {
+          if (e.class_temp[i] === Object.keys(karui)[n]) {
+            if (e.class_temp[i + 1] === "|") {
+              for (let j = i + 2; e.class_temp[j] != "!"; j++) {
+                classes = e.class_temp[j].split("-");
+                if (classes.length === 2) {
+                  classes[0] = parseInt(classes[0]);
+                  classes[1] = parseInt(classes[1]);
+                  for (let k = classes[0]; k <= classes[1]; k++) {
+                    e.two_grade.push(karui[e.class_temp[i]] + String(k));
+                  }
+                } else if (classes.length === 1) {
+                  e.two_grade.push(karui[e.class_temp[i]] + classes[0]);
+                }
+              }
+            } else {
+              e.two_grade.push(karui[e.class_temp[i]] + "all");
+            }
+          }
+        }
+      }
+    }
+  }
+  delete e.class_temp;
+};
 
 /**
  * 系列の短縮表現を得る
@@ -101,6 +300,7 @@ const getShortenedEvaluation = (text) => {
   ].join("");
 };
 
+// TODO: ここの部分をドキュメントにしてページに載せる?
 /**
  * 講義場所の短縮表現を得る
  * 1. 大半の表示は、"(1~2桁の建物番号)**"
@@ -114,7 +314,6 @@ const getShortenedEvaluation = (text) => {
  * @param {string} text
  * @returns {string}
  */
-// TODO: ここの部分をドキュメントにしてページに載せる?
 const getShortenedClassroom = (text) => {
   if (!text) {
     return "不明";
@@ -185,23 +384,91 @@ const processLecture = (lecture) => {
   lecture.shortenedClassroom = getShortenedClassroom(lecture.classroom);
 };
 
+/**
+ * DBをソートしたものを返す
+ * @param {Lecture[]} data
+ * @returns {Lecture[]}
+ */
+const getSortedDB = (data) => {
+  /** @type {Map<string, Lecture[]>} */
+  const nonIntegrated = new Map([
+    ["基礎", []],
+    ["主題", []],
+    ["要求", []],
+    ["展開", []],
+    ["PEAK", []],
+    ["JP", []],
+  ]);
+  /** @type {Map<string, Lecture[]>} */
+  const integrated = new Map([
+    ["A", []],
+    ["B", []],
+    ["C", []],
+    ["D", []],
+    ["E", []],
+    ["F", []],
+    ["L", []],
+  ]);
+
+  data.forEach((e) => {
+    if (e.titleJp.includes("PEAK")) {
+      nonIntegrated.get("PEAK").push(e);
+    } else if (e.titleJp.includes("日本語") && e.titleJp.includes("級")) {
+      nonIntegrated.get("JP").push(e);
+    } else if (nonIntegrated.has(e.type)) {
+      nonIntegrated.get(e.type).push(e);
+    } else if (e.type === "総合" && integrated.has(e.shortenedCategory[2])) {
+      integrated.get(e.shortenedCategory[2]).push(e);
+    } else {
+      console.log(e.type, e.shortenedCategory, e.titleJp);
+    }
+  });
+
+  console.log("総合");
+  integrated.forEach((v, k) => {
+    console.log(`${k}: ${v.length}`);
+  });
+  console.log("");
+  nonIntegrated.forEach((v, k) => {
+    console.log(`${k}: ${v.length}`);
+  });
+
+  const foundation = nonIntegrated.get("基礎");
+  nonIntegrated.delete("基礎");
+
+  const sorted = foundation.concat(
+    ...integrated.values(),
+    ...nonIntegrated.values()
+  );
+
+  console.log(sorted.length);
+
+  return sorted;
+};
+
+/**
+ * versionからDBを読み込み、処理したものを書き出す
+ * @param {string} version
+ */
 const processDB = (version) => {
-  const readFileName = `sorted${version}.json`;
+  const readFileName = `raw${version}.json`;
   const writeFileName = `processed${version}.json`;
 
-  let rawData = fs.readFileSync(readFileName).toString();
-
-  rawData = normalize(rawData);
-
-  /** @type {Lecture[]} */
-  const data = JSON.parse(rawData);
+  const rawText = fs.readFileSync(readFileName).toString();
 
   // テキストを正規化する
-  for (const lecture of data) {
-    processLecture(lecture);
-  }
+  const normText = normalizeText(rawText);
 
-  fs.writeFileSync(writeFileName, JSON.stringify(data));
+  /** @type {Lecture[]} */
+  const data = JSON.parse(normText);
+
+  data.forEach(parseClass);
+
+  data.forEach(processLecture);
+
+  const sorted = getSortedDB(data);
+
+  fs.writeFileSync(writeFileName, JSON.stringify(sorted));
 };
 
 processDB(version);
