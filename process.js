@@ -47,19 +47,24 @@ const version = JSON.parse(fs.readFileSync("version.json").toString());
  * 全角英数字, 全角スペース, 空文字の除去、紛らわしい文字の統一、テンプレテキスト削除
  * 分かりにくいが、5つ目のreplaceの"～"は全角チルダであり、波ダッシュではない
  * 小文字にはしていない(検索時は別途toLowerCase()が必要)
+ * 処理時点では、改行文字は"\n"で表されている
  * @param {string} text
  * @returns {string}
  */
 const normalizeText = (text) =>
   text
     .replace(/\s+/g, " ")
-    .replace(/\\n\s/g, "")
-    .replace(/([^\S\n]|　)+/g, " ")
-    .replace(/[，．]/g, "$& ")
-    .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
-    .replace(/[‐―−ｰ]/g, "-")
-    .replaceAll("〜", "~")
-    .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "");
+    .replace(/(?:\\n){3,}/g, "\\n\\n") // 連続する空行を1行に
+    .replace(/[，．]/g, "$& ") // 全角コンマ, ピリオド(半角化される)の体裁を保つためにスペースを挿入
+    .replace(/ (?=\\n)|(?<=\\n) /g, "") // 改行前後の空白を削除
+    .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 半角化
+    .replace(/[‐―−ｰ]/g, "-") // ハイフンに統合
+    .replaceAll("〜", "~") // 波ダッシュ -> チルダ
+    .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "") // テンプレ文字列削除
+    .replace(
+      /https:\/\/(u-tokyo-ac-jp\.|us02web\.)?zoom.us\/.*?(?=\\n|[" ])((\\n)*ミーティング ID: [\d ]{12,13}\\nパスコード(を設定する)?: \d{6})?/g,
+      "【Zoom URLはポータル等にてご確認ください】"
+    ); // ZoomURL削除
 
 /**
  * 対象クラス情報をパースした結果を書き込む
