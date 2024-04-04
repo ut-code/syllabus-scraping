@@ -128,7 +128,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
   for (const isFirstTerm of [true, false]) {
     await loadSearchResult(page, url, isFirstTerm);
     await wait(30000);
-    const termBasicInfos = await page.$$eval("tbody tr", (rows) =>
+    let termBasicInfos = await page.$$eval("tbody tr", (rows) =>
       rows.map((row) => {
         const [
           ,
@@ -162,6 +162,38 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
         };
       })
     );
+
+    const localeChanger = await browser.newPage();
+    await localeChanger.goto(
+      "https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=home&locale=en_US"
+    );
+    await page.reload();
+    await wait(5000);
+
+    const basicEnglishRecords = await page.$$eval("tbody tr", (rows) =>
+      rows.map((row) => {
+        const [, , , , , , , , , , titleEn, lecturerEn] = [...row.children].map(
+          (item) => item.innerText.trim()
+        );
+
+        return {
+          titleEn,
+          lecturerEn,
+        };
+      })
+    );
+
+    termBasicInfos = termBasicInfos.map((jpRecord, i) => ({
+      ...jpRecord,
+      ...basicEnglishRecords[i],
+    }));
+
+    await localeChanger.goto(
+      "https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=home&locale=ja_JP"
+    );
+    await localeChanger.close();
+    await wait(3000);
+
     basicInfos = basicInfos.concat(termBasicInfos);
     dataCounts.push(termBasicInfos.length);
   }
