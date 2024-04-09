@@ -21,11 +21,10 @@ let skippableRecordCodes;
 // 以下、スクレイピングが中断した状態からの回復用
 try {
   data = JSON.parse(fs.readFileSync(readFileName));
-  skippableRecordCodes = new Set(
-    data
-      .filter((record) => Object.values(record).every((v) => v !== null))
-      .map((record) => record["code"])
-  );
+  data = data
+    .filter((record) => Object.values(record).every((v) => v !== null))
+    .sort((a, b) => Number(a.code) - Number(b.code));
+  skippableRecordCodes = new Set(data.map((record) => record["code"]));
 } catch {
   skippableRecordCodes = new Set();
 }
@@ -128,7 +127,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
   for (const isFirstTerm of [true, false]) {
     await loadSearchResult(page, url, isFirstTerm);
     await wait(30000);
-    let termBasicInfos = await page.$$eval("tbody tr", (rows) =>
+    const termJpInfos = await page.$$eval("tbody tr", (rows) =>
       rows.map((row) => {
         const [
           ,
@@ -170,7 +169,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
     await page.reload();
     await wait(5000);
 
-    const basicEnglishRecords = await page.$$eval("tbody tr", (rows) =>
+    const termEnInfos = await page.$$eval("tbody tr", (rows) =>
       rows.map((row) => {
         const [, , , , , , , , , , titleEn, lecturerEn] = [...row.children].map(
           (item) => item.innerText.trim()
@@ -183,16 +182,16 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
       })
     );
 
-    termBasicInfos = termBasicInfos.map((jpRecord, i) => ({
-      ...jpRecord,
-      ...basicEnglishRecords[i],
-    }));
-
     await localeChanger.goto(
       "https://utas.adm.u-tokyo.ac.jp/campusweb/campusportal.do?page=main&tabId=home&locale=ja_JP"
     );
     await localeChanger.close();
     await wait(3000);
+
+    const termBasicInfos = termJpInfos.map((jpInfo, i) => ({
+      ...jpInfo,
+      ...termEnInfos[i],
+    }));
 
     basicInfos = basicInfos.concat(termBasicInfos);
     dataCounts.push(termBasicInfos.length);
@@ -204,82 +203,90 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
   let flowExecutionKey = await page.evaluate(
     () => location.href.match(/flowExecutionKey=(.+)$/)[1]
   );
-  for (const [i, basicInfo] of basicInfos.entries()) {
-    if (skippableRecordCodes.has(basicInfo.code)) {
+  try {
+    for (const [i, basicInfo] of basicInfos.entries()) {
+      if (skippableRecordCodes.has(basicInfo.code)) {
+        continue;
+      }
+
       console.log(
-        `Skipped ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${
+        `Fetching ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${
           basicInfos.length
         })`
       );
-      continue;
-    }
-
-    console.log(
-      `Fetching ${basicInfo.code} - ${basicInfo.titleJp} (${i + 1} / ${
-        basicInfos.length
-      })`
-    );
-    await page.goto(
-      getDetailsUrl(basicInfo.code, flowExecutionKey, i < numOfTerm1)
-    );
-    await wait(2500);
-    await page.$$eval(".ui-tabs-hide", (elements) => {
-      elements.forEach((element) => {
-        element.classList.remove("ui-tabs-hide");
+      await page.goto(
+        getDetailsUrl(basicInfo.code, flowExecutionKey, i < numOfTerm1)
+      );
+      await wait(2500);
+      await page.$$eval(".ui-tabs-hide", (elements) => {
+        elements.forEach((element) => {
+          element.classList.remove("ui-tabs-hide");
+        });
       });
-    });
-    await wait(500);
+      await wait(500);
 
-    const addtionalInfo = await page.evaluate(() => {
-      /**
-       * 講義情報の表から、指定の項目の情報を得る
-       * @param {ParentNode | null} table
-       * @param {number} n
-       * @returns {string | null}
-       */
-      const getNthCellText = (table, n) => {
-        cell = table && table.querySelector(`tr:nth-child(${n}) > td`);
-        return cell && cell.innerText.trim();
-      };
+      const addtionalInfo = await page.evaluate(() => {
+        /**
+         * 講義情報の表から、指定の項目の情報を得る
+         * @param {number} t
+         * @param {number} n
+         * @returns {string | null}
+         */
+        const getNthCellText = (t, n) => {
+          const cell = document.querySelector(
+            `#tabs-${t} > .syllabus-normal > tbody > tr:nth-child(${n}) > td`
+          );
+          return cell && cell.innerText.trim();
+        };
+        /**
+         * 講義情報の表から、指定の項目の情報(ガイダンス関連)を得る
+         * @param {number} n
+         * @returns {string | null}
+         */
+        const getGuidance = (n) => {
+          const cell = document.querySelector(
+            `#tabs-2 > .syllabus-normal > tbody > tr:nth-child(9) > td tr:nth-child(${n}) > td`
+          );
+          return cell && cell.innerText.trim();
+        };
 
-      const table1 = document.querySelector(
-        "#tabs-1 > .syllabus-normal > tbody"
-      );
-      const table2 = document.querySelector(
-        "#tabs-2 > .syllabus-normal > tbody"
-      );
-      return {
-        ccCode: getNthCellText(table1, 3),
-        credits: getNthCellText(table1, 9),
-        detail: getNthCellText(table2, 2),
-        schedule: getNthCellText(table2, 4),
-        methods: getNthCellText(table2, 5),
-        evaluation: getNthCellText(table2, 6),
-        notes: getNthCellText(table2, 10),
-        class: getNthCellText(table1, 13),
-      };
-    });
+        return {
+          ccCode: getNthCellText(1, 3),
+          credits: getNthCellText(1, 9),
+          detail: getNthCellText(2, 2),
+          schedule: getNthCellText(2, 4),
+          methods: getNthCellText(2, 5),
+          evaluation: getNthCellText(2, 6),
+          notes: getNthCellText(2, 10),
+          class: getNthCellText(1, 13),
+          guidance: getGuidance(1),
+          guidanceDate: getGuidance(2),
+          guidancePeriod: getGuidance(3),
+          guidancePlace: getGuidance(4),
+        };
+      });
 
-    data[i] = {
-      ...basicInfo,
-      ...addtionalInfo,
-    };
+      data.push({
+        ...basicInfo,
+        ...addtionalInfo,
+      });
 
-    // スクレイピングが中断した際に備え、一定回数毎に保存しておく
-    if (i % 100 === 0) {
-      fs.writeFileSync(writeFileName, JSON.stringify(data));
+      // この部分については、iframe周辺の処理用と推測している
+      if (i === numOfTerm1 - 1 || i % 50 === 0) {
+        const url = await loadSearchPanelAndGetUrl(page);
+        await loadSearchResult(page, url, i < numOfTerm1 - 1);
+        await wait(10000);
+        flowExecutionKey = await page.evaluate(
+          () => location.href.match(/flowExecutionKey=(.+)$/)[1]
+        );
+      }
     }
-
-    // この部分については、iframe周辺の処理用と推測している
-    if (i === numOfTerm1 - 1 || i % 50 === 0) {
-      const url = await loadSearchPanelAndGetUrl(page);
-      await loadSearchResult(page, url, i < numOfTerm1 - 1);
-      await wait(10000);
-      flowExecutionKey = await page.evaluate(
-        () => location.href.match(/flowExecutionKey=(.+)$/)[1]
-      );
-    }
+  } finally {
+    // スクレイピングが中断もしくは終了した時に保存する
+    fs.writeFileSync(writeFileName, JSON.stringify(data));
+    console.log("Scraping is done.");
   }
 
-  fs.writeFileSync(writeFileName, JSON.stringify(data));
+  page.close();
+  browser.close();
 })();

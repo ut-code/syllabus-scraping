@@ -5,7 +5,7 @@ const fs = require("fs");
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
 const getRequiredDB = (version) => {
-  const readFileName = `sorted${version}.json`;
+  const readFileName = `processed${version}.json`;
   const writeFileName = `required${version}.json`;
 
   const rawData = fs.readFileSync(readFileName).toString();
