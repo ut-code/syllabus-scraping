@@ -53,18 +53,24 @@ const version = JSON.parse(fs.readFileSync("version.json").toString());
  */
 const normalizeText = (text) =>
   text
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, " ") // 空白文字を半角スペースに統一
     .replace(/(?:\\n){3,}/g, "\\n\\n") // 連続する空行を1行に
     .replace(/[，．]/g, "$& ") // 全角コンマ, ピリオド(半角化される)の体裁を保つためにスペースを挿入
     .replace(/ (?=\\n)|(?<=\\n) /g, "") // 改行前後の空白を削除
     .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 半角化
     .replace(/[‐―−ｰ]/g, "-") // ハイフンに統合
     .replaceAll("〜", "~") // 波ダッシュ -> チルダ
+    .replace(/"特になし。?"/g, '""')
     .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "") // テンプレ文字列削除
     .replace(
-      /https:\/\/(u-tokyo-ac-jp\.|us02web\.)?zoom.us\/.*?(?=\\n|[" ])((\\n)*ミーティング ID: [\d ]{12,13}\\nパスコード(を設定する)?: \d{6})?/g,
+      /https:\/\/(u-tokyo-ac-jp\.|us02web\.)?zoom.us\/.*?(?=\\n|[" ])/g,
       "【Zoom URLはポータル等にてご確認ください】"
-    ); // ZoomURL削除
+    )
+    .replace(
+      /(ミーティング|Meeting) ID:? [\d ]{12,13}(\\n| )(パスコード|Passcode)(を設定する)?:? ?(\d{6}|.*?(?=\\n|[" ]))/g,
+      "【Zoom URLはポータル等にてご確認ください】"
+    )
+    .replace(/(【Zoom URLはポータル等にてご確認ください】)(\\n| )*\1/g, "$1"); // ZoomURL削除
 
 /**
  * 対象クラス情報をパースした結果を書き込む
