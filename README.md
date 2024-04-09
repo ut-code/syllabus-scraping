@@ -8,6 +8,7 @@ git clone https://github.com/ut-code/syllabus-scraping
 cd syllabus-scraping
 npm install
 ```
+
 ## 半期毎のデータの更新
 
 version.jsonの中を取得したいセメスターを示す文字列に変更した上で、以下を行う
@@ -19,3 +20,9 @@ node required.js
 ```
 
 これにより生成された`processed{学期}.json`及び`required{学期}.json`を、フロントエンド側の`classList`フォルダにコピーする
+
+## 各jsonファイルの内容
+
+- `raw{学期}.json`: スクレイピングした内容(無編集)
+- `processed{学期}.json`: 文字列の正規化やZoom URLの削除、プロパティの追加等を行い、フロントエンド側で利用できるようにしたデータ
+- `required{学期}.json`: 各クラスの必修科目のコード
