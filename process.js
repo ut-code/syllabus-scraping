@@ -15,7 +15,7 @@
  * @prop {string} lecturerJp
  * @prop {string} lecturerEn
  * @prop {string} ccCode
- * @prop {string | number} credits
+ * @prop {number} credits ここで string -> number の変換を行う
  * @prop {string} detail
  * @prop {string} schedule
  * @prop {string} methods
@@ -24,6 +24,7 @@
  * @prop {string} class
  * @prop {string[]} one_grade
  * @prop {string[]} two_grade
+ * @prop {[string[], string[]]} importance
  * @prop {string} guidance
  * @prop {string} guidanceDate
  * @prop {string} guidancePeriod
@@ -31,6 +32,8 @@
  * @prop {string} shortenedCategory
  * @prop {string} shortenedEvaluation
  * @prop {string} shortenedClassroom
+ * @prop {number} time ここで string -> number の変換を行う
+ * @prop {string} timeCompensation
  * @prop {HTMLTableRowElement} tableRow
  */
 
@@ -60,7 +63,7 @@ const normalizeText = (text) =>
     .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 半角化
     .replace(/[‐―−ｰ]/g, "-") // ハイフンに統合
     .replaceAll("〜", "~") // 波ダッシュ -> チルダ
-    .replace(/"特になし。?"/g, '""')
+    .replace(/"(特になし。?|TBA)"/g, '""')
     .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "") // テンプレ文字列削除
     .replace(
       /https:\/\/(u-tokyo-ac-jp\.|us02web\.)?zoom.us\/.*?(?=\\n|[" ])/g,
@@ -82,10 +85,11 @@ const parseClass = (e) => {
   e.class_temp = e.class_temp.split(")").join(" ! ");
   e.class_temp = e.class_temp.split(",").join(" ");
   e.class_temp = e.class_temp.split(" ");
+  // console.log(e.class_temp);
   e.one_grade = [];
   e.two_grade = [];
-  grade = 0;
-  karui = {
+  let grade = 0;
+  const karui = {
     理一: "s1_",
     理二: "s2_",
     理三: "s3_",
@@ -376,11 +380,71 @@ const getGuidance = (text) => {
 };
 
 /**
+ * 授業の重要度を取得する
+ * @param {string} text
+ * @returns
+ */
+const getImportance = (text) => {
+  // 必修(一意)
+  const required = [
+    /語[一二]列/,
+    /語初級\(演習\)[①②]$/,
+    /^情報$/,
+    /^身体運動・健康科学実習/,
+    /^初年次ゼミナール[文理]科$/,
+    /^基礎実験[ⅠⅡⅢ]/,
+    /^基礎(物理|化|生命科)学実験$/,
+    /^数理科学基礎$/,
+    /^(微分積分|線型代数)学(①|②|演習)$/,
+    /^(力|電磁気)学A$/,
+    /^熱力学$/,
+    /^(構造|物性)化学$/,
+    /^生命科学[ⅠⅡ]?$/,
+  ];
+  for (const regexp of required) {
+    if (text.match(regexp)) {
+      return [["l1", "l2", "l3", "s1", "s2", "s3"], []];
+    }
+  }
+
+  // 必修(条件付き変更)
+  const selection = [/^(力|電磁気)学B$/, /^化学熱力学$/, /α$/];
+  for (const regexp of selection) {
+    if (text.match(regexp)) {
+      return [["l1", "l2", "l3", "s1", "s2", "s3"], []];
+    }
+  }
+
+  // 必修(選択)
+  const recommended = [
+    /^英語[中上]級/,
+    /^(法|政治|経済|社会|数学|哲学|倫理|歴史|心理)[ⅠⅡ]$/,
+    /^ことばと文学/,
+  ];
+  for (const regexp of recommended) {
+    if (text.match(regexp)) {
+      return [[], ["l1", "l2", "l3", "s1", "s2", "s3"]];
+    }
+  }
+
+  // 理一は必修、理二三は任意選択
+  const conditional = [/^(数理科学基礎|数学基礎理論)演習$/];
+  for (const regexp of conditional) {
+    if (text.match(regexp)) {
+      return [["s1"], ["s2", "s3"]];
+    }
+  }
+
+  return [[], []];
+};
+
+/**
  * 講義情報を正規化, 追加する
  * @param {Lecture} lecture
  */
 const processLecture = (lecture) => {
   lecture.credits = Number(lecture.credits);
+  lecture.time = parseInt(lecture.time);
 
   lecture.detail = lecture.detail.trim();
   lecture.schedule = lecture.schedule.trim();
@@ -388,6 +452,7 @@ const processLecture = (lecture) => {
   lecture.evaluation = lecture.evaluation.trim();
   lecture.notes = lecture.notes.trim();
 
+  lecture.importance = getImportance(lecture.titleJp);
   lecture.guidance = getGuidance(lecture.guidance);
   lecture.shortenedCategory =
     lecture.type + getShortenedCategory(lecture.category);
