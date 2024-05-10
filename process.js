@@ -22,9 +22,8 @@
  * @prop {string} evaluation
  * @prop {string} notes
  * @prop {string} class
- * @prop {string[]} one_grade
- * @prop {string[]} two_grade
  * @prop {[string[], string[]]} importance
+ * @prop {[string[], string[]]} targetClass
  * @prop {string} guidance
  * @prop {string} guidanceDate
  * @prop {string} guidancePeriod
@@ -169,8 +168,7 @@ const parseClass = (e) => {
       }
     }
   }
-  e.one_grade = target[0];
-  e.two_grade = target[1];
+  e.targetClass = target;
 };
 
 /**
