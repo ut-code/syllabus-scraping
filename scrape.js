@@ -110,6 +110,12 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
     .then(([searchButton]) => searchButton.click());
 };
 
+// Ctrl-Cでプロセスを終了した場合には、以下のコードのfinally節が実行されないため、プロセス自体にハンドラを設定する
+process.on("SIGINT", () => {
+  fs.writeFileSync(writeFileName, JSON.stringify(data));
+  console.log("\nScraping is aborted.");
+});
+
 (async () => {
   const browser = await puppeteer.launch({ headless: false });
   console.log("Browser launched.");
@@ -217,7 +223,7 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
       await page.goto(
         getDetailsUrl(basicInfo.code, flowExecutionKey, i < numOfTerm1)
       );
-      await wait(2500);
+      await wait(1500);
       await page.$$eval(".ui-tabs-hide", (elements) => {
         elements.forEach((element) => {
           element.classList.remove("ui-tabs-hide");
@@ -263,6 +269,8 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
           guidanceDate: getGuidance(2),
           guidancePeriod: getGuidance(3),
           guidancePlace: getGuidance(4),
+          time: getNthCellText(2, 18),
+          timeCompensation: getNthCellText(2, 19),
         };
       });
 
@@ -281,10 +289,14 @@ const loadSearchResult = async (page, url, isFirstTerm) => {
         );
       }
     }
-  } finally {
-    // スクレイピングが中断もしくは終了した時に保存する
-    fs.writeFileSync(writeFileName, JSON.stringify(data));
+
     console.log("Scraping is done.");
+  } catch (e) {
+    console.log("Scraping is suspended.");
+    throw e;
+  } finally {
+    // スクレイピングがエラーで中断もしくは終了した時に保存する
+    fs.writeFileSync(writeFileName, JSON.stringify(data));
   }
 
   page.close();
