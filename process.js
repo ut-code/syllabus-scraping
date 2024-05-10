@@ -169,6 +169,7 @@ const parseClass = (e) => {
       }
     }
   }
+  target.forEach((l) => l.sort());
   e.one_grade = target[0];
   e.two_grade = target[1];
 };
