@@ -75,14 +75,15 @@ const getRequiredDB = (version) => {
       for (let i = 1; i <= classNum; i++) {
         const className = `l${group}_${i}`;
         init(className);
+        const grade = 1; // 文科2年には必修科目の指定がない
         if (
           e.category === "社会科学"
             ? e.titleJp.match(regexpL[group - 1])
-            : e.targetClass[0].includes(className) &&
-              (e.type !== "総合" || e.shortenedCategory === "総合L")
+            : (e.type !== "総合" || e.shortenedCategory === "総合L") &&
+              e.targetClass[grade - 1].includes(className)
         ) {
-          required[0][className].push(e.code);
-          requiredTitle[0][className].push(e.titleJp);
+          required[grade - 1][className].push(e.code);
+          requiredTitle[grade - 1][className].push(e.titleJp);
         }
       }
     }
@@ -94,8 +95,8 @@ const getRequiredDB = (version) => {
         init(className);
         for (let grade = 1; grade <= 2; grade++) {
           if (
-            e.targetClass[grade - 1].includes(className) &&
-            (e.type !== "総合" || e.shortenedCategory === "総合L")
+            (e.type !== "総合" || e.shortenedCategory === "総合L") &&
+            e.targetClass[grade - 1].includes(className)
           ) {
             required[grade - 1][className].push(e.code);
             requiredTitle[grade - 1][className].push(e.titleJp);
@@ -106,7 +107,7 @@ const getRequiredDB = (version) => {
   });
 
   fs.writeFileSync(writeFileName, JSON.stringify(required));
-  fs.writeFileSync(logFileName, JSON.stringify(requiredTitle));
+  fs.writeFileSync(logFileName, JSON.stringify(requiredTitle, undefined, 4));
 };
 
 getRequiredDB(version);

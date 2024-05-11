@@ -347,7 +347,7 @@ const getImportance = (text) => {
  */
 const processLecture = (lecture) => {
   lecture.credits = Number(lecture.credits);
-  lecture.time = parseInt(lecture.time);
+  lecture.time = Number(lecture.time.replace("分", ""));
 
   lecture.detail = lecture.detail.trim();
   lecture.schedule = lecture.schedule.trim();
