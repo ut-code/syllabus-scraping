@@ -17,7 +17,7 @@
  * @prop {string} lecturerJp
  * @prop {string} lecturerEn
  * @prop {string} ccCode
- * @prop {number} credits ここで string -> number の変換を行う
+ * @prop {number} credits
  * @prop {string} detail
  * @prop {string} schedule
  * @prop {string} methods
@@ -33,7 +33,7 @@
  * @prop {string} shortenedCategory
  * @prop {string} shortenedEvaluation
  * @prop {string} shortenedClassroom
- * @prop {number} time ここで string -> number の変換を行う
+ * @prop {number} time
  * @prop {string} timeCompensation
  * @prop {HTMLTableRowElement} tableRow
  */
