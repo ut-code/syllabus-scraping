@@ -79,9 +79,7 @@ const normalizeText = (text) =>
  * @param {string} text
  * @returns {number | null}
  */
-const parseGrade = (text) => {
-  return text[1] === "年" ? Number(text[0]) : null;
-};
+const parseGrade = (text) => (text[1] === "年" ? Number(text[0]) : null);
 
 /**
  * 科類をパースして科類コードの一部もしくは全部を返す。科類でない場合はnull
@@ -133,6 +131,7 @@ const parseClass = (e) => {
       grade = grade_;
       continue;
     }
+
     const stream_ = parseStream(temp[i]);
     if (stream_) {
       const [isEntire, codes] = stream_;
@@ -241,7 +240,7 @@ const getShortenedClassroom = (text) => {
     /^(?:駒場\d+号館|情報教育棟) (E?[-\d]+|18号館.+)(?:教室)?$/
   )?.[1];
   if (classroom) {
-    return classroom === "900" ? "講堂" : classroom;
+    return classroom;
   }
   const komcee = text.match(/^21KOMCEE ((?:East|West) K\d+)$/)?.[1];
   if (komcee) {
@@ -250,6 +249,9 @@ const getShortenedClassroom = (text) => {
   const other = text.match(/^その(他\(学[内外]等\))/)?.[1];
   if (other) {
     return other;
+  }
+  if (text.includes("講堂")) {
+    return "講堂";
   }
   if (text.includes("KALS")) {
     return "KALS";
