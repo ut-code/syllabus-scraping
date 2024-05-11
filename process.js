@@ -1,3 +1,8 @@
+// 文字列正規化
+// 学年毎の対象クラス情報追加
+// 使用するプロパティの追加
+// 授業種別によってDBをソート
+
 /** @typedef {string} Code */
 /** @typedef {string} Semester */
 /** @typedef {string} Period */
@@ -35,11 +40,6 @@
  * @prop {string} timeCompensation
  * @prop {HTMLTableRowElement} tableRow
  */
-
-// 文字列正規化
-// 学年毎の対象クラス情報追加
-// 使用するプロパティの追加
-// 授業種別によってDBをソート
 
 const fs = require("fs");
 

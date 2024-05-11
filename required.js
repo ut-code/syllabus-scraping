@@ -1,5 +1,43 @@
 // クラス毎の必修授業の時間割コードのリストを提供する
 
+/** @typedef {string} Code */
+/** @typedef {string} Semester */
+/** @typedef {string} Period */
+/** @typedef {string} TitleJp */
+/**
+ * @typedef {Object} Lecture
+ * @prop {Code} code
+ * @prop {string} type
+ * @prop {string} category
+ * @prop {Semester} semester
+ * @prop {Period[]} periods
+ * @prop {string} classroom
+ * @prop {TitleJp} titleJp
+ * @prop {string} titleEn
+ * @prop {string} lecturerJp
+ * @prop {string} lecturerEn
+ * @prop {string} ccCode
+ * @prop {number} credits ここで string -> number の変換を行う
+ * @prop {string} detail
+ * @prop {string} schedule
+ * @prop {string} methods
+ * @prop {string} evaluation
+ * @prop {string} notes
+ * @prop {string} class
+ * @prop {[string[], string[]]} importance
+ * @prop {[string[], string[]]} targetClass
+ * @prop {string} guidance
+ * @prop {string} guidanceDate
+ * @prop {string} guidancePeriod
+ * @prop {string} guidancePlace
+ * @prop {string} shortenedCategory
+ * @prop {string} shortenedEvaluation
+ * @prop {string} shortenedClassroom
+ * @prop {number} time ここで string -> number の変換を行う
+ * @prop {string} timeCompensation
+ * @prop {HTMLTableRowElement} tableRow
+ */
+
 const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
@@ -7,14 +45,16 @@ const version = JSON.parse(fs.readFileSync("version.json").toString());
 const getRequiredDB = (version) => {
   const readFileName = `processed${version}.json`;
   const writeFileName = `required${version}.json`;
+  const logFileName = `requiredTitle${version}.json`;
 
   const rawData = fs.readFileSync(readFileName).toString();
 
+  /** @type {Lecture[]} */
   const data = JSON.parse(rawData);
   /** @type {Object.<string, string[]>[]} */
   const required = [{}, {}];
   /** @type {Object.<string, string[]>[]} */
-  const subjectName = [{}, {}];
+  const requiredTitle = [{}, {}];
   /** @type {string[]} */
   const inited = [];
   const init = (className) => {
@@ -22,168 +62,43 @@ const getRequiredDB = (version) => {
       inited.push(className);
       required[0][className] = [];
       required[1][className] = [];
-      subjectName[0][className] = [];
-      subjectName[1][className] = [];
+      requiredTitle[0][className] = [];
+      requiredTitle[1][className] = [];
     }
   };
 
   data.forEach((e) => {
-    for (let i = 1; i <= 39; i++) {
-      const className_s1 = "s1_" + i;
-      init(className_s1);
-      for (let i = 0; i < e.targetClass[0].length; i++) {
-        if (className_s1 === e.targetClass[0][i]) {
-          if (
-            !(
-              e.titleJp === "図形科学A" ||
-              e.titleJp === "基礎化学" ||
-              e.titleJp === "基礎統計"
-            )
-          ) {
-            required[0][className_s1].push(e.code);
-            subjectName[0][className_s1].push(e.titleJp);
-          }
-        }
-      }
-      for (let i = 0; i < e.targetClass[1].length; i++) {
-        if (className_s1 === e.targetClass[1][i]) {
-          if (
-            !(
-              e.titleJp === "図形科学B" ||
-              e.titleJp === "図形科学A" ||
-              e.titleJp === "基礎統計" ||
-              e.titleJp === "常微分方程式" ||
-              e.titleJp === "有機反応化学"
-            )
-          ) {
-            required[1][className_s1].push(e.code);
-            subjectName[1][className_s1].push(e.titleJp);
-          }
+    // 文科
+    const regexpL = [/^(?:法|政治)[ⅠⅡ]$/, /^(?:数学|経済)[ⅠⅡ]$/, /(?!)/];
+    for (let group = 1; group <= 3; group++) {
+      const classNum = group === 3 ? 20 : 39;
+      for (let i = 1; i <= classNum; i++) {
+        const className = `l${group}_${i}`;
+        init(className);
+        if (
+          e.category === "社会科学"
+            ? e.titleJp.match(regexpL[group - 1])
+            : e.targetClass[0].includes(className) &&
+              (e.type !== "総合" || e.shortenedCategory === "総合L")
+        ) {
+          required[0][className].push(e.code);
+          requiredTitle[0][className].push(e.titleJp);
         }
       }
     }
-    for (let i = 1; i <= 24; i++) {
-      const className_s2 = "s2_" + i;
-      init(className_s2);
-      for (let i = 0; i < e.targetClass[0].length; i++) {
-        if (className_s2 === e.targetClass[0][i]) {
+    // 理科
+    for (let group = 1; group <= 3; group++) {
+      const classNum = group === 1 ? 39 : 24;
+      for (let i = 1; i <= classNum; i++) {
+        const className = `s${group}_${i}`;
+        init(className);
+        for (let grade = 1; grade <= 2; grade++) {
           if (
-            !(
-              e.titleJp === "図形科学A" ||
-              e.titleJp === "基礎化学" ||
-              e.titleJp === "基礎統計" ||
-              e.titleJp === "数理科学基礎演習" ||
-              e.titleJp === "数学基礎理論演習"
-            )
+            e.targetClass[grade - 1].includes(className) &&
+            (e.type !== "総合" || e.shortenedCategory === "総合L")
           ) {
-            required[0][className_s2].push(e.code);
-            subjectName[0][className_s2].push(e.titleJp);
-          }
-        }
-      }
-      for (let i = 0; i < e.targetClass[1].length; i++) {
-        if (className_s2 === e.targetClass[1][i]) {
-          if (
-            !(
-              e.titleJp === "図形科学B" ||
-              e.titleJp === "図形科学A" ||
-              e.titleJp === "基礎統計" ||
-              e.titleJp === "常微分方程式" ||
-              e.titleJp === "有機反応化学"
-            )
-          ) {
-            required[1][className_s2].push(e.code);
-            subjectName[1][className_s2].push(e.titleJp);
-          }
-        }
-      }
-    }
-    for (let i = 1; i <= 24; i++) {
-      const className_s3 = "s3_" + i;
-      init(className_s3);
-      for (let i = 0; i < e.targetClass[0].length; i++) {
-        if (className_s3 === e.targetClass[0][i]) {
-          if (
-            !(
-              e.titleJp === "図形科学A" ||
-              e.titleJp === "基礎化学" ||
-              e.titleJp === "基礎統計" ||
-              e.titleJp === "数理科学基礎演習" ||
-              e.titleJp === "数学基礎理論演習"
-            )
-          ) {
-            required[0][className_s3].push(e.code);
-            subjectName[0][className_s3].push(e.titleJp);
-          }
-        }
-      }
-      for (let i = 0; i < e.targetClass[1].length; i++) {
-        if (className_s3 === e.targetClass[1][i]) {
-          if (
-            !(
-              e.titleJp === "図形科学B" ||
-              e.titleJp === "図形科学A" ||
-              e.titleJp === "基礎統計" ||
-              e.titleJp === "常微分方程式" ||
-              e.titleJp === "有機反応化学"
-            )
-          ) {
-            required[1][className_s3].push(e.code);
-            subjectName[1][className_s3].push(e.titleJp);
-          }
-        }
-      }
-    }
-    for (let i = 1; i <= 39; i++) {
-      const className_l1 = "l1_" + i;
-      init(className_l1);
-      if (
-        e.titleJp === "法Ⅰ" ||
-        e.titleJp === "政治Ⅰ" ||
-        e.titleJp === "法Ⅱ" ||
-        e.titleJp === "政治Ⅱ"
-      ) {
-        required[0][className_l1].push(e.code);
-        subjectName[0][className_l1].push(e.titleJp);
-      }
-      for (let i = 0; i < e.targetClass[0].length; i++) {
-        if (className_l1 === e.targetClass[0][i]) {
-          if (!(e.titleJp === "基礎化学" || e.titleJp === "基礎統計")) {
-            required[0][className_l1].push(e.code);
-            subjectName[0][className_l1].push(e.titleJp);
-          }
-        }
-      }
-    }
-    for (let i = 1; i <= 39; i++) {
-      const className_l2 = "l2_" + i;
-      init(className_l2);
-      if (
-        e.titleJp === "数学Ⅰ" ||
-        e.titleJp === "経済Ⅰ" ||
-        e.titleJp === "数学Ⅱ" ||
-        e.titleJp === "経済Ⅱ"
-      ) {
-        required[0][className_l2].push(e.code);
-        subjectName[0][className_l2].push(e.titleJp);
-      }
-      for (let i = 0; i < e.targetClass[0].length; i++) {
-        if (className_l2 === e.targetClass[0][i]) {
-          if (!(e.titleJp === "基礎化学" || e.titleJp === "基礎統計")) {
-            required[0][className_l2].push(e.code);
-            subjectName[0][className_l2].push(e.titleJp);
-          }
-        }
-      }
-    }
-    for (let i = 1; i <= 20; i++) {
-      const className_l3 = "l3_" + i;
-      init(className_l3);
-      for (let i = 0; i < e.targetClass[0].length; i++) {
-        if (className_l3 === e.targetClass[0][i]) {
-          if (!(e.titleJp === "基礎化学" || e.titleJp === "基礎統計")) {
-            required[0][className_l3].push(e.code);
-            subjectName[0][className_l3].push(e.titleJp);
+            required[grade - 1][className].push(e.code);
+            requiredTitle[grade - 1][className].push(e.titleJp);
           }
         }
       }
@@ -191,7 +106,7 @@ const getRequiredDB = (version) => {
   });
 
   fs.writeFileSync(writeFileName, JSON.stringify(required));
-  console.log(subjectName);
+  fs.writeFileSync(logFileName, JSON.stringify(requiredTitle));
 };
 
 getRequiredDB(version);
