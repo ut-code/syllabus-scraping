@@ -46,23 +46,115 @@ const fs = require("fs");
 const version = JSON.parse(fs.readFileSync("version.json").toString());
 
 /**
- * 全角英数字, 全角スペース, 空文字の除去、紛らわしい文字の統一、テンプレテキスト削除
- * 分かりにくいが、5つ目のreplaceの"～"は全角チルダであり、波ダッシュではない
+ * 半角カナ -> 全角カナ, 分離した濁点及び半濁点の結合
+ * @param {string} text
+ * @returns {string}
+ */
+const normalizeJapanese = (text) => {
+  const kanaMap = {
+    ｱ: "ア",
+    ｲ: "イ",
+    ｳ: "ウ",
+    ｴ: "エ",
+    ｵ: "オ",
+    ｶ: "カ",
+    ｷ: "キ",
+    ｸ: "ク",
+    ｹ: "ケ",
+    ｺ: "コ",
+    ｻ: "サ",
+    ｼ: "シ",
+    ｽ: "ス",
+    ｾ: "セ",
+    ｿ: "ソ",
+    ﾀ: "タ",
+    ﾁ: "チ",
+    ﾂ: "ツ",
+    ﾃ: "テ",
+    ﾄ: "ト",
+    ﾅ: "ナ",
+    ﾆ: "ニ",
+    ﾇ: "ヌ",
+    ﾈ: "ネ",
+    ﾉ: "ノ",
+    ﾊ: "ハ",
+    ﾋ: "ヒ",
+    ﾌ: "フ",
+    ﾍ: "ヘ",
+    ﾎ: "ホ",
+    ﾏ: "マ",
+    ﾐ: "ミ",
+    ﾑ: "ム",
+    ﾒ: "メ",
+    ﾓ: "モ",
+    ﾔ: "ヤ",
+    ﾕ: "ユ",
+    ﾖ: "ヨ",
+    ﾗ: "ラ",
+    ﾘ: "リ",
+    ﾙ: "ル",
+    ﾚ: "レ",
+    ﾛ: "ロ",
+    ﾜ: "ワ",
+    ｦ: "ヲ",
+    ﾝ: "ン",
+    ｧ: "ァ",
+    ｨ: "ィ",
+    ｩ: "ゥ",
+    ｪ: "ェ",
+    ｫ: "ォ",
+    ｯ: "ッ",
+    ｬ: "ャ",
+    ｭ: "ュ",
+    ｮ: "ョ",
+    "｡": "。",
+    "､": "、",
+    ｰ: "ー",
+    "｢": "「",
+    "｣": "」",
+    "･": "・",
+    ﾞ: "゛",
+    ﾟ: "゜",
+  };
+  return text
+    .replace(/[｡-ﾟ]/g, (match) => kanaMap[match])
+    .replace(
+      /[かきくけこさしすせそたちつてとはひふへほカキクケコサシスセソタチツテトハヒフヘホ][゛゙]/g,
+      (s) => String.fromCharCode(s.charCodeAt(0) + 1)
+    )
+    .replace(/[うウ][゛゙]/g, (s) =>
+      String.fromCharCode(s.charCodeAt(0) + 0x4e)
+    )
+    .replace(/[ワヰヱヲ][゛゙]/g, (s) =>
+      String.fromCharCode(s.charCodeAt(0) + 8)
+    )
+    .replace(/[はひふへほハヒフヘホ][゜゚]/g, (s) =>
+      String.fromCharCode(s.charCodeAt(0) + 2)
+    );
+};
+/**
+ * - 日本語文字正規化
+ * - 全角英数字, 全角スペース, 空文字の除去
+ * - 紛らわしい文字の統一
+ * - テンプレテキスト削除
+ * - Zoom URL削除
+ *
  * 小文字にはしていない(検索時は別途toLowerCase()が必要)
- * 処理時点では、改行文字は"\n"で表されている
+ *
+ * 注:処理時点では、改行文字は"\n"で表されている(正規表現中では"\\n"とする必要がある)
  * @param {string} text
  * @returns {string}
  */
 const normalizeText = (text) =>
-  text
+  normalizeJapanese(text)
     .replace(/\s+/g, " ") // 空白文字を半角スペースに統一
     .replace(/(?:\\n){3,}/g, "\\n\\n") // 連続する空行を1行に
     .replace(/[，．]/g, "$& ") // 全角コンマ, ピリオド(半角化される)の体裁を保つためにスペースを挿入
     .replace(/ (?=\\n)|(?<=\\n) /g, "") // 改行前後の空白を削除
-    .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 半角化
-    .replace(/[‐―−ｰ]/g, "-") // ハイフンに統合
+    .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 半角化("～"は全角チルダであり、波ダッシュではない)
+    .replace(/[‐―−]/g, "-") // ハイフンマイナスに統合(左からハイフン, ダッシュ, マイナス)
     .replaceAll("〜", "~") // 波ダッシュ -> チルダ
-    .replace(/"(特になし。?|TBA)"/g, '""')
+    .replace(/"((((特に)?(なし|ありません))|省?略)。?|TBA)"/g, '""')
     .replace(/【(?:各自)?入力不?可】|【各自ご入力ください\(必須\)】/g, "") // テンプレ文字列削除
     .replace(
       /https:\/\/(u-tokyo-ac-jp\.|us02web\.)?zoom.us\/.*?(?=\\n|[" ])/g,
@@ -108,6 +200,8 @@ const parseStream = (text) => {
 
 /**
  * 対象クラス情報をパースした結果を書き込む
+ *
+ * 注:文科三類, 理科二類のPEAKクラスは0組として扱う
  * @param {Lecture} e
  */
 const parseClass = (e) => {
@@ -141,7 +235,9 @@ const parseClass = (e) => {
         if (temp[i + 1] === "|") {
           i++;
           for (i++; temp[i] !== "!"; i++) {
-            const classes = temp[i].split("-").map((n) => Number(n));
+            const classes = temp[i]
+              .split("-")
+              .map((n) => (n === "P" ? 0 : Number(n)));
             switch (classes.length) {
               case 1:
                 for (const code of codes) {
@@ -171,27 +267,53 @@ const parseClass = (e) => {
 };
 
 /**
- * 系列の短縮表現を得る
+ * 基礎科目の系列の短縮表現を得る
  * @param {string} category
  */
-const getShortenedCategory = (category) => {
-  switch (category) {
-    case "L(言語・コミュニケーション)":
-      return "L";
-    case "A(思想・芸術)":
-      return "A";
-    case "B(国際・地域)":
-      return "B";
-    case "C(社会・制度)":
-      return "C";
-    case "D(人間・環境)":
-      return "D";
-    case "E(物質・生命)":
-      return "E";
-    case "F(数理・情報)":
-      return "F";
+const getShortenedCategoryFundamental = (category) => {
+  const nameTable = {
+    既修外国語: "一外",
+    初修外国語: "二外",
+    情報: "情報",
+    "身体運動・健康科学実習": "スポ身",
+    初年次ゼミナール文科: "初ゼミ文",
+    初年次ゼミナール理科: "初ゼミ理",
+    社会科学: "社会",
+    人文科学: "人文",
+    数理科学: "数理",
+    物質科学: "物質",
+    生命科学: "生命",
+    基礎実験: "実験",
+  };
+  const shortenedCategory = nameTable[category];
+  if (shortenedCategory) {
+    return shortenedCategory;
+  }
+  throw new Error(`基礎, ${category}`);
+};
+
+/**
+ * 種別及び系列の短縮表現を得る
+ * @param {string} type
+ * @param {string} category
+ */
+const getShortenedCategory = (type, category) => {
+  switch (type) {
+    case "基礎":
+      return `${type}(${getShortenedCategoryFundamental(category)})`;
+
+    case "展開":
+    case "主題":
+    case "要求":
+      return type;
+
+    case "総合":
+      if ("LABCDEF".includes(category[0])) {
+        return `${type}${category[0]}`;
+      }
+
     default:
-      return "";
+      throw new Error(`${type}, ${category}`);
   }
 };
 
@@ -357,8 +479,15 @@ const processLecture = (lecture) => {
 
   lecture.importance = getImportance(lecture.titleJp);
   lecture.guidance = getGuidance(lecture.guidance);
-  lecture.shortenedCategory =
-    lecture.type + getShortenedCategory(lecture.category);
+  try {
+    lecture.shortenedCategory =
+      lecture.type === "基礎" && lecture.titleJp.includes("(PEAK)")
+        ? `${lecture.type}(PEAK)`
+        : getShortenedCategory(lecture.type, lecture.category);
+  } catch (e) {
+    console.log(lecture.code);
+    throw e;
+  }
   lecture.shortenedEvaluation = getShortenedEvaluation(lecture.evaluation);
   lecture.shortenedClassroom = getShortenedClassroom(lecture.classroom);
 };
@@ -392,7 +521,7 @@ const getSortedDB = (data) => {
   data.forEach((e) => {
     if (e.titleJp.includes("PEAK")) {
       nonIntegrated.get("PEAK").push(e);
-    } else if (e.titleJp.includes("日本語") && e.titleJp.includes("級")) {
+    } else if (e.titleJp.match(/^日本語[中上]級$/)) {
       nonIntegrated.get("JP").push(e);
     } else if (nonIntegrated.has(e.type)) {
       nonIntegrated.get(e.type).push(e);
