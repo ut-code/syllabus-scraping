@@ -14,7 +14,7 @@ npm install
 version.jsonの中を取得したいセメスターを示す文字列に変更した上で、以下を行う
 
 ```bash
-node scraping.js
+node scrape.js
 node process.js
 node required.js
 ```
@@ -26,3 +26,4 @@ node required.js
 - `raw{学期}.json`: スクレイピングした内容(無編集)
 - `processed{学期}.json`: 文字列の正規化やZoom URLの削除、プロパティの追加等を行い、フロントエンド側で利用できるようにしたデータ
 - `required{学期}.json`: 各クラスの必修科目のコード
+- `requiredTitle{学期}.json`: `required{学期}.json`生成時の参照講義名一覧。デバッグ用。

@@ -1,5 +1,43 @@
 // クラス毎の必修授業の時間割コードのリストを提供する
 
+/** @typedef {string} Code */
+/** @typedef {string} Semester */
+/** @typedef {string} Period */
+/** @typedef {string} TitleJp */
+/**
+ * @typedef {Object} Lecture
+ * @prop {Code} code
+ * @prop {string} type
+ * @prop {string} category
+ * @prop {Semester} semester
+ * @prop {Period[]} periods
+ * @prop {string} classroom
+ * @prop {TitleJp} titleJp
+ * @prop {string} titleEn
+ * @prop {string} lecturerJp
+ * @prop {string} lecturerEn
+ * @prop {string} ccCode
+ * @prop {number} credits
+ * @prop {string} detail
+ * @prop {string} schedule
+ * @prop {string} methods
+ * @prop {string} evaluation
+ * @prop {string} notes
+ * @prop {string} class
+ * @prop {[string[], string[]]} importance
+ * @prop {[string[], string[]]} targetClass
+ * @prop {string} guidance
+ * @prop {string} guidanceDate
+ * @prop {string} guidancePeriod
+ * @prop {string} guidancePlace
+ * @prop {string} shortenedCategory
+ * @prop {string} shortenedEvaluation
+ * @prop {string} shortenedClassroom
+ * @prop {number} time
+ * @prop {string} timeCompensation
+ * @prop {HTMLTableRowElement} tableRow
+ */
+
 const fs = require("fs");
 
 const version = JSON.parse(fs.readFileSync("version.json").toString());
@@ -7,226 +45,69 @@ const version = JSON.parse(fs.readFileSync("version.json").toString());
 const getRequiredDB = (version) => {
   const readFileName = `processed${version}.json`;
   const writeFileName = `required${version}.json`;
+  const logFileName = `requiredTitle${version}.json`;
 
   const rawData = fs.readFileSync(readFileName).toString();
 
+  /** @type {Lecture[]} */
   const data = JSON.parse(rawData);
-  const required = {};
-  const subjectName = {};
-  const required_2 = {};
-  const subjectName_2 = {};
+  /** @type {Object.<string, string[]>[]} */
+  const required = [{}, {}];
+  /** @type {Object.<string, string[]>[]} */
+  const requiredTitle = [{}, {}];
+  /** @type {string[]} */
+  const inited = [];
+  const init = (className) => {
+    if (!inited.includes(className)) {
+      inited.push(className);
+      required[0][className] = [];
+      required[1][className] = [];
+      requiredTitle[0][className] = [];
+      requiredTitle[1][className] = [];
+    }
+  };
 
   data.forEach((e) => {
-    for (let i = 1; i < 40; i++) {
-      const className_s1 = "s1_" + i;
-      for (let i = 0; i < e.one_grade.length; i++) {
-        if (className_s1 === e.one_grade[i]) {
+    // 文科
+    const regexpL = [/^(?:法|政治)[ⅠⅡ]$/, /^(?:数学|経済)[ⅠⅡ]$/, /(?!)/];
+    for (let group = 1; group <= 3; group++) {
+      const classNum = group === 3 ? 20 : 39;
+      for (let i = 1; i <= classNum; i++) {
+        const className = `l${group}_${i}`;
+        init(className);
+        const grade = 1; // 文科2年には必修科目の指定がない
+        if (
+          e.category === "社会科学"
+            ? e.titleJp.match(regexpL[group - 1])
+            : (e.type !== "総合" || e.shortenedCategory === "総合L") &&
+              e.targetClass[grade - 1].includes(className)
+        ) {
+          required[grade - 1][className].push(e.code);
+          requiredTitle[grade - 1][className].push(e.titleJp);
+        }
+      }
+    }
+    // 理科
+    for (let group = 1; group <= 3; group++) {
+      const classNum = group === 1 ? 39 : 24;
+      for (let i = 1; i <= classNum; i++) {
+        const className = `s${group}_${i}`;
+        init(className);
+        for (let grade = 1; grade <= 2; grade++) {
           if (
-            e.titleJp === "図形科学Ａ" ||
-            e.titleJp === "基礎化学" ||
-            e.titleJp === "基礎統計"
+            (e.type !== "総合" || e.shortenedCategory === "総合L") &&
+            e.targetClass[grade - 1].includes(className)
           ) {
-          } else {
-            if (className_s1 in required) {
-              required[className_s1].push(e.code);
-              subjectName[className_s1].push(e.titleJp);
-            } else {
-              required[className_s1] = [e.code];
-              subjectName[className_s1] = [e.titleJp];
-            }
-          }
-        }
-      }
-      for (let i = 0; i < e.two_grade.length; i++) {
-        if (className_s1 === e.two_grade[i]) {
-          if (
-            e.titleJp === "図形科学Ｂ" ||
-            e.titleJp === "図形科学Ａ" ||
-            e.titleJp === "基礎統計" ||
-            e.titleJp === "常微分方程式" ||
-            e.titleJp === "有機反応化学"
-          ) {
-          } else {
-            if (className_s1 in required_2) {
-              required_2[className_s1].push(e.code);
-              subjectName_2[className_s1].push(e.titleJp);
-            } else {
-              required_2[className_s1] = [e.code];
-              subjectName_2[className_s1] = [e.titleJp];
-            }
-          }
-        }
-      }
-      const className_s2 = "s2_" + i;
-      for (let i = 0; i < e.one_grade.length; i++) {
-        if (className_s2 === e.one_grade[i]) {
-          if (
-            e.titleJp === "図形科学Ａ" ||
-            e.titleJp === "基礎化学" ||
-            e.titleJp === "基礎統計" ||
-            e.titleJp === "数理科学基礎演習" ||
-            e.titleJp === "数学基礎理論演習"
-          ) {
-          } else {
-            if (className_s2 in required) {
-              required[className_s2].push(e.code);
-              subjectName[className_s2].push(e.titleJp);
-            } else {
-              required[className_s2] = [e.code];
-              subjectName[className_s2] = [e.titleJp];
-            }
-          }
-        }
-      }
-      for (let i = 0; i < e.two_grade.length; i++) {
-        if (className_s2 === e.two_grade[i]) {
-          if (
-            e.titleJp === "図形科学Ｂ" ||
-            e.titleJp === "図形科学Ａ" ||
-            e.titleJp === "基礎統計" ||
-            e.titleJp === "常微分方程式" ||
-            e.titleJp === "有機反応化学"
-          ) {
-          } else {
-            if (className_s2 in required_2) {
-              required_2[className_s2].push(e.code);
-              subjectName_2[className_s2].push(e.titleJp);
-            } else {
-              required_2[className_s2] = [e.code];
-              subjectName_2[className_s2] = [e.titleJp];
-            }
-          }
-        }
-      }
-      const className_s3 = "s3_" + i;
-      for (let i = 0; i < e.one_grade.length; i++) {
-        if (className_s3 === e.one_grade[i]) {
-          if (
-            e.titleJp === "図形科学Ａ" ||
-            e.titleJp === "基礎化学" ||
-            e.titleJp === "基礎統計" ||
-            e.titleJp === "数理科学基礎演習" ||
-            e.titleJp === "数学基礎理論演習"
-          ) {
-          } else {
-            if (className_s3 in required) {
-              required[className_s3].push(e.code);
-              subjectName[className_s3].push(e.titleJp);
-            } else {
-              required[className_s3] = [e.code];
-              subjectName[className_s3] = [e.titleJp];
-            }
-          }
-        }
-      }
-      for (let i = 0; i < e.two_grade.length; i++) {
-        if (className_s3 === e.two_grade[i]) {
-          if (
-            e.titleJp === "図形科学Ｂ" ||
-            e.titleJp === "図形科学Ａ" ||
-            e.titleJp === "基礎統計" ||
-            e.titleJp === "常微分方程式" ||
-            e.titleJp === "有機反応化学"
-          ) {
-          } else {
-            if (className_s3 in required_2) {
-              required_2[className_s3].push(e.code);
-              subjectName_2[className_s3].push(e.titleJp);
-            } else {
-              required_2[className_s3] = [e.code];
-              subjectName_2[className_s3] = [e.titleJp];
-            }
-          }
-        }
-      }
-      const className_l1 = "l1_" + i;
-      if (
-        e.titleJp === "法Ⅰ" ||
-        e.titleJp === "政治Ⅰ" ||
-        e.titleJp === "法Ⅱ" ||
-        e.titleJp === "政治Ⅱ"
-      ) {
-        if (className_l1 in required) {
-          required[className_l1].push(e.code);
-          subjectName[className_l1].push(e.titleJp);
-          // console.log(className_l1, e.titleJp, e.lecturerJp);
-        } else {
-          required[className_l1] = [e.code];
-          subjectName[className_l1] = [e.titleJp];
-        }
-      }
-      for (let i = 0; i < e.one_grade.length; i++) {
-        if (className_l1 === e.one_grade[i]) {
-          if (e.titleJp === "基礎化学" || e.titleJp === "基礎統計") {
-          } else {
-            if (className_l1 in required) {
-              required[className_l1].push(e.code);
-              subjectName[className_l1].push(e.titleJp);
-            } else {
-              required[className_l1] = [e.code];
-              subjectName[className_l1] = [e.titleJp];
-              if (!(className_l1 in required_2)) {
-                required_2[className_l1] = [];
-              }
-            }
-          }
-        }
-      }
-      const className_l2 = "l2_" + i;
-      if (
-        e.titleJp === "数学Ⅰ" ||
-        e.titleJp === "経済Ⅰ" ||
-        e.titleJp === "数学Ⅱ" ||
-        e.titleJp === "経済Ⅱ"
-      ) {
-        if (className_l2 in required) {
-          required[className_l2].push(e.code);
-          subjectName[className_l2].push(e.titleJp);
-          // console.log(className_l2, e.titleJp, e.lecturerJp);
-        } else {
-          required[className_l2] = [e.code];
-          subjectName[className_l2] = [e.titleJp];
-        }
-      }
-      for (let i = 0; i < e.one_grade.length; i++) {
-        if (className_l2 === e.one_grade[i]) {
-          if (e.titleJp === "基礎化学" || e.titleJp === "基礎統計") {
-          } else {
-            if (className_l2 in required) {
-              required[className_l2].push(e.code);
-              subjectName[className_l2].push(e.titleJp);
-            } else {
-              required[className_l2] = [e.code];
-              subjectName[className_l2] = [e.titleJp];
-              if (!(className_l2 in required_2)) {
-                required_2[className_l2] = [];
-              }
-            }
-          }
-        }
-      }
-      const className_l3 = "l3_" + i;
-      for (let i = 0; i < e.one_grade.length; i++) {
-        if (className_l3 === e.one_grade[i]) {
-          if (e.titleJp === "基礎化学" || e.titleJp === "基礎統計") {
-          } else {
-            if (className_l3 in required) {
-              required[className_l3].push(e.code);
-              subjectName[className_l3].push(e.titleJp);
-            } else {
-              required[className_l3] = [e.code];
-              subjectName[className_l3] = [e.titleJp];
-              if (!(className_l3 in required_2)) {
-                required_2[className_l3] = [];
-              }
-            }
+            required[grade - 1][className].push(e.code);
+            requiredTitle[grade - 1][className].push(e.titleJp);
           }
         }
       }
     }
   });
 
-  fs.writeFileSync(writeFileName, JSON.stringify([required, required_2]));
+  fs.writeFileSync(writeFileName, JSON.stringify(required));
+  fs.writeFileSync(logFileName, JSON.stringify(requiredTitle, undefined, 4));
 };
 
 getRequiredDB(version);
