@@ -161,7 +161,7 @@ const normalizeText = (text) =>
       "【Zoom URLはポータル等にてご確認ください】"
     )
     .replace(
-      /(ミーティング|Meeting) ID:? [\d ]{12,13}(\\n| )(パスコード|Passcode)(を設定する)?:? ?(\d{6}|.*?(?=\\n|[" ]))/g,
+      /(ミーティング ?ID|Meeting ID|ID de Zoom):? [\d ]{12,13}(\\n| )(パスコード|Passcode|Password)(を設定する)?:? ?(\d{6}|.*?(?=\\n|[" ]))/g,
       "【Zoom URLはポータル等にてご確認ください】"
     )
     .replace(/(【Zoom URLはポータル等にてご確認ください】)(\\n| )*\1/g, "$1"); // ZoomURL削除
@@ -297,10 +297,12 @@ const getShortenedCategoryFundamental = (category) => {
  * @param {string} type
  * @param {string} category
  */
-const getShortenedCategory = (type, category) => {
+const getShortenedCategory = (type, category, titleJp) => {
   switch (type) {
     case "基礎":
-      return `${type}(${getShortenedCategoryFundamental(category)})`;
+      return titleJp.includes("(PEAK)")
+        ? `${type}(PEAK)`
+        : `${type}(${getShortenedCategoryFundamental(category)})`;
 
     case "展開":
     case "主題":
@@ -479,15 +481,11 @@ const processLecture = (lecture) => {
 
   lecture.importance = getImportance(lecture.titleJp);
   lecture.guidance = getGuidance(lecture.guidance);
-  try {
-    lecture.shortenedCategory =
-      lecture.type === "基礎" && lecture.titleJp.includes("(PEAK)")
-        ? `${lecture.type}(PEAK)`
-        : getShortenedCategory(lecture.type, lecture.category);
-  } catch (e) {
-    console.log(lecture.code);
-    throw e;
-  }
+  lecture.shortenedCategory = getShortenedCategory(
+    lecture.type,
+    lecture.category,
+    lecture.titleJp
+  );
   lecture.shortenedEvaluation = getShortenedEvaluation(lecture.evaluation);
   lecture.shortenedClassroom = getShortenedClassroom(lecture.classroom);
 };
