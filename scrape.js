@@ -251,7 +251,7 @@ process.on("SIGINT", () => {
          */
         const getGuidance = (n) => {
           const cell = document.querySelector(
-            `#tabs-2 > .syllabus-normal > tbody > tr:nth-child(9) > td tr:nth-child(${n}) > td`
+            `#tabs-2 > .syllabus-normal > tbody > tr:nth-child(10) > td tr:nth-child(${n}) > td`
           );
           return cell && cell.innerText.trim();
         };
@@ -260,17 +260,17 @@ process.on("SIGINT", () => {
           ccCode: getNthCellText(1, 3),
           credits: getNthCellText(1, 9),
           detail: getNthCellText(2, 2),
-          schedule: getNthCellText(2, 4),
-          methods: getNthCellText(2, 5),
-          evaluation: getNthCellText(2, 6),
-          notes: getNthCellText(2, 10),
+          schedule: getNthCellText(2, 5),
+          methods: getNthCellText(2, 6),
+          evaluation: getNthCellText(2, 7),
+          notes: getNthCellText(2, 11),
           class: getNthCellText(1, 13),
           guidance: getGuidance(1),
           guidanceDate: getGuidance(2),
           guidancePeriod: getGuidance(3),
           guidancePlace: getGuidance(4),
-          time: getNthCellText(2, 18),
-          timeCompensation: getNthCellText(2, 19),
+          time: getNthCellText(2, 20),
+          timeCompensation: getNthCellText(2, 21),
         };
       });
 
